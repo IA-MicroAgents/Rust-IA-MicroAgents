@@ -230,8 +230,8 @@
           <div id="graph-scroll" style="overflow:auto;">
             <div id="graph-stage" style="position:relative; min-block-size:42rem;">
               <div id="cy-flow" style="min-block-size:42rem;"></div>
-              <div id="graph-layer" hidden></div>
-              <div id="packet-layer" hidden></div>
+              <div id="graph-layer" aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; z-index:2;"></div>
+              <div id="packet-layer" aria-hidden="true" style="position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:3;"></div>
             </div>
           </div>
           <div class="wa-cluster wa-gap-s wa-flex-wrap">
@@ -667,6 +667,185 @@
       graphState.activities.delete(nodeId);
     };
 
+    const flowTone = (kind = 'control') => ({
+      inbound: {
+        fill: '#1da1f2',
+        glow: 'rgba(29, 161, 242, 0.18)',
+        bubbleBg: 'rgba(11, 53, 87, 0.95)',
+        bubbleBorder: 'rgba(102, 197, 255, 0.56)',
+        chipBg: 'rgba(10, 45, 73, 0.96)',
+        chipBorder: 'rgba(110, 196, 255, 0.44)',
+        text: '#ebf7ff',
+      },
+      outbound: {
+        fill: '#10c98d',
+        glow: 'rgba(16, 201, 141, 0.16)',
+        bubbleBg: 'rgba(16, 72, 58, 0.95)',
+        bubbleBorder: 'rgba(118, 236, 198, 0.50)',
+        chipBg: 'rgba(13, 55, 46, 0.96)',
+        chipBorder: 'rgba(126, 235, 198, 0.36)',
+        text: '#ecfff8',
+      },
+      work: {
+        fill: '#f4c861',
+        glow: 'rgba(244, 200, 97, 0.16)',
+        bubbleBg: 'rgba(84, 58, 13, 0.96)',
+        bubbleBorder: 'rgba(244, 200, 97, 0.44)',
+        chipBg: 'rgba(72, 49, 12, 0.96)',
+        chipBorder: 'rgba(244, 200, 97, 0.34)',
+        text: '#fff4d8',
+      },
+      review: {
+        fill: '#b992ff',
+        glow: 'rgba(185, 146, 255, 0.18)',
+        bubbleBg: 'rgba(60, 35, 98, 0.96)',
+        bubbleBorder: 'rgba(202, 176, 255, 0.44)',
+        chipBg: 'rgba(52, 29, 86, 0.96)',
+        chipBorder: 'rgba(201, 175, 255, 0.34)',
+        text: '#f7eeff',
+      },
+      artifact: {
+        fill: '#ffb357',
+        glow: 'rgba(255, 179, 87, 0.16)',
+        bubbleBg: 'rgba(87, 48, 14, 0.96)',
+        bubbleBorder: 'rgba(255, 179, 87, 0.42)',
+        chipBg: 'rgba(74, 40, 12, 0.96)',
+        chipBorder: 'rgba(255, 179, 87, 0.32)',
+        text: '#fff1de',
+      },
+      accept: {
+        fill: '#14d485',
+        glow: 'rgba(20, 212, 133, 0.16)',
+        bubbleBg: 'rgba(16, 68, 49, 0.96)',
+        bubbleBorder: 'rgba(114, 239, 188, 0.42)',
+        chipBg: 'rgba(12, 58, 42, 0.96)',
+        chipBorder: 'rgba(114, 239, 188, 0.32)',
+        text: '#ebfff6',
+      },
+      error: {
+        fill: '#f26b7b',
+        glow: 'rgba(242, 107, 123, 0.18)',
+        bubbleBg: 'rgba(87, 23, 37, 0.96)',
+        bubbleBorder: 'rgba(255, 150, 163, 0.44)',
+        chipBg: 'rgba(74, 18, 31, 0.96)',
+        chipBorder: 'rgba(255, 150, 163, 0.32)',
+        text: '#fff0f3',
+      },
+      spawn: {
+        fill: '#ff9b62',
+        glow: 'rgba(255, 155, 98, 0.16)',
+        bubbleBg: 'rgba(92, 47, 16, 0.96)',
+        bubbleBorder: 'rgba(255, 181, 132, 0.42)',
+        chipBg: 'rgba(82, 40, 12, 0.96)',
+        chipBorder: 'rgba(255, 181, 132, 0.30)',
+        text: '#fff2e9',
+      },
+      control: {
+        fill: '#84a7ff',
+        glow: 'rgba(132, 167, 255, 0.16)',
+        bubbleBg: 'rgba(32, 46, 88, 0.96)',
+        bubbleBorder: 'rgba(148, 177, 255, 0.40)',
+        chipBg: 'rgba(24, 37, 74, 0.96)',
+        chipBorder: 'rgba(148, 177, 255, 0.30)',
+        text: '#edf3ff',
+      },
+      return: {
+        fill: '#ff9b62',
+        glow: 'rgba(255, 155, 98, 0.16)',
+        bubbleBg: 'rgba(92, 47, 16, 0.96)',
+        bubbleBorder: 'rgba(255, 181, 132, 0.42)',
+        chipBg: 'rgba(82, 40, 12, 0.96)',
+        chipBorder: 'rgba(255, 181, 132, 0.30)',
+        text: '#fff2e9',
+      },
+    }[kind] || {
+      fill: '#84a7ff',
+      glow: 'rgba(132, 167, 255, 0.16)',
+      bubbleBg: 'rgba(32, 46, 88, 0.96)',
+      bubbleBorder: 'rgba(148, 177, 255, 0.40)',
+      chipBg: 'rgba(24, 37, 74, 0.96)',
+      chipBorder: 'rgba(148, 177, 255, 0.30)',
+      text: '#edf3ff',
+    });
+
+    const resolveNodeRect = (nodeId) =>
+      graphState.nodeRects.get(nodeId) || graphState.nodeRects.get(`task:${nodeId}`);
+
+    const stylePacket = (packet, kind) => {
+      const tone = flowTone(kind);
+      Object.assign(packet.style, {
+        position: 'absolute',
+        width: '14px',
+        height: '14px',
+        marginLeft: '-7px',
+        marginTop: '-7px',
+        borderRadius: '999px',
+        background: tone.fill,
+        boxShadow: `0 0 0 7px ${tone.glow}`,
+        opacity: '0',
+        transform: 'translate(0px, 0px)',
+        transition: 'transform 860ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease',
+        zIndex: '30',
+      });
+    };
+
+    const styleBubble = (bubble, kind) => {
+      const tone = flowTone(kind);
+      Object.assign(bubble.style, {
+        position: 'absolute',
+        maxWidth: '220px',
+        padding: '7px 10px',
+        borderRadius: '999px',
+        border: `1px solid ${tone.bubbleBorder}`,
+        background: tone.bubbleBg,
+        color: tone.text,
+        fontSize: '12px',
+        fontWeight: '700',
+        lineHeight: '1.2',
+        letterSpacing: '0.01em',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        boxShadow: `0 16px 38px ${tone.glow}`,
+        opacity: '0',
+        transform: 'translate(0px, 0px) scale(0.94)',
+        transition: 'transform 980ms cubic-bezier(0.2, 1, 0.22, 1), opacity 180ms ease',
+        zIndex: '31',
+      });
+    };
+
+    const styleActivityChip = (chip, dot, kind) => {
+      const tone = flowTone(kind);
+      Object.assign(chip.style, {
+        position: 'absolute',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        maxWidth: '216px',
+        padding: '7px 11px',
+        borderRadius: '999px',
+        border: `1px solid ${tone.chipBorder}`,
+        background: tone.chipBg,
+        color: tone.text,
+        fontSize: '12px',
+        fontWeight: '700',
+        lineHeight: '1.2',
+        boxShadow: `0 12px 30px ${tone.glow}`,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        zIndex: '28',
+      });
+      Object.assign(dot.style, {
+        width: '8px',
+        height: '8px',
+        borderRadius: '999px',
+        flex: '0 0 auto',
+        background: tone.fill,
+        boxShadow: `0 0 0 5px ${tone.glow}`,
+      });
+    };
+
     const renderActivities = () => {
       const now = Date.now();
       for (const [nodeId, activity] of [...graphState.activities.entries()]) {
@@ -679,13 +858,14 @@
         const rect = graphState.nodeRects.get(nodeId) || graphState.nodeRects.get(`task:${nodeId}`);
         if (!rect) return;
         const chip = document.createElement('div');
-        chip.className = `activity-chip ${activity.kind || 'work'}`;
+        const dot = document.createElement('span');
+        const label = document.createElement('span');
+        label.textContent = activity.text;
+        styleActivityChip(chip, dot, activity.kind || 'work');
         chip.style.left = `${rect.x + Math.max(10, rect.width / 2 - 108)}px`;
         chip.style.top = `${Math.max(10, rect.y - 46)}px`;
-        chip.innerHTML = `
-          <span class="activity-dot"></span>
-          <span>${escapeHtml(activity.text)}</span>
-        `;
+        chip.appendChild(dot);
+        chip.appendChild(label);
         packetLayer.appendChild(chip);
       });
     };
@@ -996,11 +1176,16 @@
     };
 
     const emitPacket = (fromId, toId, kind = 'control') => {
-      const from = graphState.nodeRects.get(fromId) || graphState.nodeRects.get(`task:${fromId}`);
-      const to = graphState.nodeRects.get(toId) || graphState.nodeRects.get(`task:${toId}`);
+      let from = resolveNodeRect(fromId);
+      let to = resolveNodeRect(toId);
+      if ((!from || !to) && packetLayer) {
+        renderGraph();
+        from = resolveNodeRect(fromId);
+        to = resolveNodeRect(toId);
+      }
       if (!from || !to) return;
       const packet = document.createElement('div');
-      packet.className = `flow-packet ${kind}`;
+      stylePacket(packet, kind);
       packet.style.left = `${from.x + from.width / 2}px`;
       packet.style.top = `${from.y + from.height / 2}px`;
       packetLayer.appendChild(packet);
@@ -1012,12 +1197,17 @@
     };
 
     const emitBubble = (fromId, toId, label, kind = 'inbound') => {
-      const from = graphState.nodeRects.get(fromId) || graphState.nodeRects.get(`task:${fromId}`);
-      const to = graphState.nodeRects.get(toId) || graphState.nodeRects.get(`task:${toId}`);
+      let from = resolveNodeRect(fromId);
+      let to = resolveNodeRect(toId);
+      if ((!from || !to) && packetLayer) {
+        renderGraph();
+        from = resolveNodeRect(fromId);
+        to = resolveNodeRect(toId);
+      }
       if (!from || !to) return;
       const bubble = document.createElement('div');
-      bubble.className = `flow-bubble ${kind}`;
-      bubble.textContent = String(label || '').trim() || kind;
+      styleBubble(bubble, kind);
+      bubble.textContent = activityPreview(String(label || '').trim() || kind, 42);
       bubble.style.left = `${from.x + from.width / 2}px`;
       bubble.style.top = `${from.y + from.height / 2 - 28}px`;
       packetLayer.appendChild(bubble);
@@ -1250,6 +1440,10 @@
           break;
         case 'task_assigned': {
           const modelLabel = compactModel(payload.resolved_model || payload.model_route);
+          const promptPreview = activityPreview(
+            payload.prompt_preview || payload.description || payload.title || payload.task_id || 'task',
+            46
+          );
           const task = ensureTask({
             id: payload.task_id,
             title: payload.title,
@@ -1273,9 +1467,9 @@
           if (task && agent) {
             maybePulse('supervisor', 'work');
             maybePulse(payload.subagent_id, 'work');
-            setActivity(payload.subagent_id, `Asignado: ${task.title || payload.task_id}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 12000);
+            setActivity(payload.subagent_id, `Prompt: ${promptPreview}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 12000);
             setActivity(`task:${payload.task_id}`, `Asignado a ${payload.subagent_id}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 12000);
-            maybeBubble('supervisor', payload.subagent_id, task.title || payload.task_id, 'work');
+            maybeBubble('supervisor', payload.subagent_id, promptPreview, 'work');
             maybePacket('supervisor', payload.subagent_id, 'control');
           }
           needsRender = true;
@@ -1283,6 +1477,10 @@
         }
         case 'task_started': {
           const modelLabel = compactModel(payload.resolved_model || payload.model_route);
+          const promptPreview = activityPreview(
+            payload.prompt_preview || payload.description || payload.title || payload.task_id || 'working',
+            46
+          );
           const task = ensureTask({
             id: payload.task_id,
             state: 'running',
@@ -1303,15 +1501,19 @@
           if (task && agent) {
             maybePulse(payload.subagent_id, 'work');
             maybePulse(`task:${payload.task_id}`, 'work');
-            setActivity(payload.subagent_id, `Ejecutando: ${task.title || payload.task_id}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 14000);
+            setActivity(payload.subagent_id, `Ejecutando: ${promptPreview}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 14000);
             setActivity(`task:${payload.task_id}`, `Running${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 14000);
-            maybeBubble(payload.subagent_id, payload.task_id, 'working', 'work');
+            maybeBubble(payload.subagent_id, payload.task_id, promptPreview, 'work');
             maybePacket(payload.subagent_id, payload.task_id, 'work');
           }
           needsRender = true;
           break;
         }
         case 'task_artifact_submitted':
+          const artifactPreview = activityPreview(
+            payload.artifact_summary || payload.artifact_output_preview || payload.task_id || 'artifact',
+            48
+          );
           ensureTask({ id: payload.task_id, state: 'waiting_review' });
           ensureSubagent({
             id: payload.subagent_id,
@@ -1322,14 +1524,18 @@
           });
           maybePulse(payload.subagent_id, 'review');
           maybePulse('review-lane', 'review');
-          setActivity(payload.subagent_id, 'Artifact listo', 'review', 12000);
-          setActivity('review-lane', `Revisando ${payload.task_id}`, 'review', 12000);
-          setActivity(`task:${payload.task_id}`, 'Esperando review', 'review', 12000);
-          maybeBubble(payload.subagent_id, 'review-lane', 'artifact', 'review');
+          setActivity(payload.subagent_id, `Resultado: ${artifactPreview}`, 'review', 12000);
+          setActivity('review-lane', `Review: ${artifactPreview}`, 'review', 12000);
+          setActivity(`task:${payload.task_id}`, `Esperando review · ${artifactPreview}`, 'review', 12000);
+          maybeBubble(payload.subagent_id, 'review-lane', artifactPreview, 'artifact');
           maybePacket(payload.subagent_id, 'review-lane', 'artifact');
           needsRender = true;
           break;
         case 'task_reviewed':
+          const reviewPreview = activityPreview(
+            payload.notes || payload.action || 'review',
+            44
+          );
           ensureSubagent({
             id: payload.subagent_id,
             role: payload.role,
@@ -1340,13 +1546,17 @@
           });
           maybePulse('review-lane', 'review');
           maybePulse('supervisor', 'review');
-          setActivity('review-lane', `${payload.action || 'review'} · score ${Number(payload.score || 0).toFixed(2)}`, 'review', 12000);
-          setActivity('supervisor', `Decision review: ${payload.action || 'review'}`, 'review', 12000);
-          maybeBubble('review-lane', 'supervisor', payload.action || 'review', 'review');
+          setActivity('review-lane', `${payload.action || 'review'} · ${reviewPreview}`, 'review', 12000);
+          setActivity('supervisor', `Decision review: ${reviewPreview}`, 'review', 12000);
+          maybeBubble('review-lane', 'supervisor', reviewPreview, 'review');
           maybePacket('review-lane', 'supervisor', 'review');
           needsRender = true;
           break;
         case 'task_accepted':
+          const acceptedPreview = activityPreview(
+            payload.artifact_summary || payload.task_id || 'accepted',
+            44
+          );
           ensureTask({ id: payload.task_id, state: 'accepted' });
           ensureSubagent({
             id: payload.subagent_id,
@@ -1358,16 +1568,22 @@
           maybePulse('review-lane', 'outbound');
           maybePulse(`task:${payload.task_id}`, 'outbound');
           maybePulse('integration', 'outbound');
-          setActivity(`task:${payload.task_id}`, 'Accepted', 'outbound', 12000);
-          setActivity('integration', `Aceptado: ${payload.task_id}`, 'outbound', 12000);
+          setActivity(`task:${payload.task_id}`, `Accepted · ${acceptedPreview}`, 'outbound', 12000);
+          setActivity('integration', `Aceptado: ${acceptedPreview}`, 'outbound', 12000);
           if (!payload.ephemeral) {
             setActivity(payload.subagent_id, 'Libre', 'outbound', 7000);
           }
           maybeBubble('review-lane', `task:${payload.task_id}`, 'accepted', 'outbound');
           maybePacket('review-lane', `task:${payload.task_id}`, 'accept');
+          maybeBubble(`task:${payload.task_id}`, 'integration', acceptedPreview, 'outbound');
+          maybePacket(`task:${payload.task_id}`, 'integration', 'accept');
           needsRender = true;
           break;
         case 'task_rejected':
+          const rejectedPreview = activityPreview(
+            payload.review_notes || payload.action || 'rejected',
+            44
+          );
           ensureTask({ id: payload.task_id, state: 'rejected' });
           ensureSubagent({
             id: payload.subagent_id,
@@ -1378,9 +1594,9 @@
           });
           maybePulse('review-lane', 'error');
           maybePulse(`task:${payload.task_id}`, 'error');
-          setActivity(`task:${payload.task_id}`, 'Rejected', 'error', 12000);
+          setActivity(`task:${payload.task_id}`, `Rejected · ${rejectedPreview}`, 'error', 12000);
           setActivity(payload.subagent_id, 'Revision requerida', 'error', 12000);
-          maybeBubble('review-lane', `task:${payload.task_id}`, 'rejected', 'error');
+          maybeBubble('review-lane', `task:${payload.task_id}`, rejectedPreview, 'error');
           maybePacket('review-lane', `task:${payload.task_id}`, 'error');
           needsRender = true;
           break;

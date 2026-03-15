@@ -72,6 +72,15 @@ pub async fn run_one_task(
             "trace_id": turn_context.trace_id,
             "task_id": task.id,
             "title": task.title,
+            "description": preview_text(&task.description, 180),
+            "prompt_preview": preview_text(
+                if task.description.trim().is_empty() {
+                    &task.title
+                } else {
+                    &task.description
+                },
+                180
+            ),
             "subagent_id": subagent.id,
             "role": subagent.role,
             "route_key": task.route_key,
@@ -93,6 +102,16 @@ pub async fn run_one_task(
             "conversation_id": turn_context.conversation_id,
             "trace_id": turn_context.trace_id,
             "task_id": task.id,
+            "title": task.title,
+            "description": preview_text(&task.description, 180),
+            "prompt_preview": preview_text(
+                if task.description.trim().is_empty() {
+                    &task.title
+                } else {
+                    &task.description
+                },
+                180
+            ),
             "subagent_id": subagent.id,
             "role": subagent.role,
             "route_key": task.route_key,
@@ -118,6 +137,9 @@ pub async fn run_one_task(
                     "task_id": task.id,
                     "subagent_id": subagent.id,
                     "role": subagent.role,
+                    "artifact_summary": preview_text(&artifact.summary, 180),
+                    "artifact_output_preview": preview_text(&artifact.output, 220),
+                    "evidence_count": artifact.evidence.len(),
                     "ephemeral": subagent.ephemeral,
                 }),
             );
@@ -151,6 +173,7 @@ pub async fn run_one_task(
                     "role": subagent.role,
                     "score": review.score,
                     "action": format!("{:?}", review.action),
+                    "notes": preview_text(&review.notes, 180),
                     "ephemeral": subagent.ephemeral,
                 }),
             );
@@ -167,6 +190,8 @@ pub async fn run_one_task(
                     "subagent_id": subagent.id,
                     "role": subagent.role,
                     "score": review.score,
+                    "artifact_summary": preview_text(&artifact.summary, 180),
+                    "review_notes": preview_text(&review.notes, 180),
                     "ephemeral": subagent.ephemeral,
                 }),
             );
@@ -249,4 +274,23 @@ pub async fn run_one_task(
             }
         }
     }
+}
+
+fn preview_text(input: &str, max_chars: usize) -> String {
+    let collapsed = input.split_whitespace().collect::<Vec<_>>().join(" ");
+    let trimmed = collapsed.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let mut out = String::new();
+    let mut count = 0usize;
+    for ch in trimmed.chars() {
+        if count >= max_chars {
+            out.push('…');
+            return out;
+        }
+        out.push(ch);
+        count += 1;
+    }
+    out
 }
