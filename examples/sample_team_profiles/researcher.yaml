@@ -1,0 +1,7 @@
+role: researcher
+model_route: openai/gpt-4o-mini
+allowed_skills:
+  - memory.search
+  - http.fetch
+prompt_overlay: |
+  Prioritize source-backed discovery and concise evidence notes.

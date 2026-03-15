@@ -1,0 +1,7 @@
+role: verifier
+model_route: openai/gpt-4o-mini
+allowed_skills:
+  - memory.search
+  - agent.status
+prompt_overlay: |
+  Reject outputs that are unsupported, unsafe, or inconsistent with acceptance criteria.

@@ -1,0 +1,1806 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ferrum Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23162044'/%3E%3Cpath d='M22 18h20v6H29v8h11v6H29v14h-7V18z' fill='%23f7fbff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/static/vendor/pico.min.css" />
+  <link rel="stylesheet" href="/static/dashboard.css" />
+  <script src="/static/vendor/cytoscape.min.js"></script>
+</head>
+<body class="theme-pro">
+  <div class="dashboard dashboard-shell">
+    <aside class="dashboard-sidebar">
+      <div class="sidebar-panel">
+        <div class="sidebar-brand">
+          <div class="brand-mark">F</div>
+          <div class="sidebar-brand-copy">
+            <p class="eyebrow">Ferrum Runtime</p>
+            <h1>Mission Control</h1>
+          </div>
+        </div>
+        <p class="sidebar-copy">Panel operativo para supervisar capacidad, eventos, flujo de ejecución y configuración en un solo lugar.</p>
+      </div>
+
+      <nav class="tab-nav" aria-label="Dashboard views">
+        <button class="tab-button active" data-tab="home">
+          <span>Overview</span>
+          <small>Estado, capacidad y canal</small>
+        </button>
+        <button class="tab-button" data-tab="flow">
+          <span>Flow</span>
+          <small>Grafo vivo del runtime</small>
+        </button>
+        <button class="tab-button" data-tab="events">
+          <span>Events</span>
+          <small>Mensajes y trazas</small>
+        </button>
+        <button class="tab-button" data-tab="config">
+          <span>Config</span>
+          <small>Runtime settings</small>
+        </button>
+      </nav>
+
+      <div class="sidebar-panel sidebar-panel-muted">
+        <div class="sidebar-metric">
+          <span>Identity</span>
+          <strong>{{ identity_id }}</strong>
+        </div>
+        <div class="sidebar-metric">
+          <span>Skills catalog</span>
+          <strong>{{ loaded_skills }}</strong>
+        </div>
+        <div class="sidebar-metric">
+          <span>Telegram</span>
+          <strong>{% if telegram_enabled %}enabled{% else %}disabled{% endif %}</strong>
+        </div>
+      </div>
+    </aside>
+
+    <div class="dashboard-main-shell">
+      <header class="hero-header">
+        <div class="hero-copy">
+          <p class="eyebrow">Autonomous orchestration</p>
+          <h2>Ferrum Mission Control</h2>
+          <p class="hero-description">Supervisa el supervisor, la capacidad del team y la entrega sobre Telegram sin salir del runtime.</p>
+          <div class="hero-summary">
+            <div class="hero-summary-card">
+              <span>Identity</span>
+              <strong>{{ identity_id }}</strong>
+            </div>
+            <div class="hero-summary-card">
+              <span>Channel</span>
+              <strong id="active-channel">{{ active_channel }}</strong>
+            </div>
+            <div class="hero-summary-card">
+              <span>Estimated cost</span>
+              <strong>${{ total_cost_usd }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="hero-rail">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            <span id="runtime-state">{{ runtime_state }}</span>
+          </div>
+          <div class="hero-chip">Persistent pool: <strong id="persistent-count">{{ team_size }}</strong></div>
+          <div class="hero-chip">Configured team: <strong id="configured-team-size">{{ configured_team_size }}</strong></div>
+          <div class="hero-chip">Parallel limit: <strong id="effective-parallel-limit">{{ effective_parallel_limit }}</strong></div>
+          <div class="hero-chip">Elastic cap: <strong id="elastic-cap">-</strong></div>
+          <div class="hero-chip">DB: <strong>{{ database_backend }}</strong></div>
+          <div class="hero-chip">Cache: <strong>{{ cache_backend }}</strong></div>
+        </div>
+      </header>
+
+      <main class="dashboard-content">
+      <section class="tab-panel active" data-panel="home">
+        <section class="tab-lead">
+          <div>
+            <p class="eyebrow">Overview</p>
+            <h2 class="tab-lead-title">Operational snapshot</h2>
+            <p class="tab-lead-copy">Lectura rápida del estado del runtime, el burst del team y la salud del bus antes de entrar al flujo detallado.</p>
+          </div>
+          <div class="tab-lead-pills">
+            <span class="lead-pill">Skills <strong>{{ loaded_skills }}</strong></span>
+            <span class="lead-pill">Queue <strong id="queue-depth">{{ queue_depth }}</strong></span>
+            <span class="lead-pill">Updated <strong id="ts"></strong></span>
+          </div>
+        </section>
+        <section class="overview-grid">
+          <article class="card col-4 stat-card tone-cyan">
+            <h2>Persistent Pool</h2>
+            <div class="value" id="team-size">{{ team_size }}</div>
+            <div class="sub">Subagentes base del supervisor</div>
+          </article>
+          <article class="card col-4 stat-card tone-amber">
+            <h2>Elastic Burst</h2>
+            <div class="value" id="elastic-count">0</div>
+            <div class="sub">Subagentes efímeros vivos</div>
+          </article>
+          <article class="card col-4 stat-card tone-green">
+            <h2>Queue</h2>
+            <div class="value" id="queue-depth-inline">{{ queue_depth }}</div>
+            <div class="sub">Eventos pendientes</div>
+          </article>
+
+          <article class="card col-8 feature-card">
+            <h2>Execution Control</h2>
+            <ul class="metric-list">
+              <li>Coste estimado total: <strong>${{ total_cost_usd }}</strong></li>
+              <li>Canal activo: <strong>{{ active_channel }}</strong></li>
+              <li>Storage stack: <strong>{{ database_backend }}</strong> + <strong>{{ cache_backend }}</strong></li>
+              <li>Última actualización visible en la cabecera del panel.</li>
+            </ul>
+          </article>
+          <article class="card col-4 compact-card">
+            <h2>Parallelism</h2>
+            <div class="metric-stack">
+              <div class="metric-chip">Active tasks <strong id="active-task-count">0</strong></div>
+              <div class="metric-chip">Current batch <strong id="parallel-width">0</strong></div>
+              <div class="metric-chip">Skills <strong>{{ loaded_skills }}</strong></div>
+            </div>
+          </article>
+
+          <article class="card col-6 analytics-card">
+            <h2>Host Resources</h2>
+            <div class="metric-stack">
+              <div class="metric-chip">CPU cores <strong id="host-cpu-cores">-</strong></div>
+              <div class="metric-chip">CPU usage <strong id="host-cpu-usage">-</strong></div>
+              <div class="metric-chip">Memory pressure <strong id="host-memory-pressure">-</strong></div>
+              <div class="metric-chip">Free memory <strong id="host-free-memory">-</strong></div>
+            </div>
+          </article>
+          <article class="card col-6 analytics-card">
+            <h2>Adaptive Burst</h2>
+            <div class="metric-stack">
+              <div class="metric-chip">Configured ephemeral cap <strong id="host-configured-ephemeral">-</strong></div>
+              <div class="metric-chip">Effective ephemeral cap <strong id="host-effective-ephemeral">-</strong></div>
+              <div class="metric-chip">Planner max tasks <strong id="planner-max-tasks">-</strong></div>
+              <div class="metric-chip">Plan max depth <strong id="planner-max-depth">-</strong></div>
+            </div>
+          </article>
+          <article class="card col-6 analytics-card">
+            <h2>Redis Bus</h2>
+            <div class="metric-stack">
+              <div class="metric-chip">Enabled <strong id="bus-enabled">-</strong></div>
+              <div class="metric-chip">Outbox pending <strong id="bus-outbox-pending">-</strong></div>
+              <div class="metric-chip">Outbox published <strong id="bus-outbox-published">-</strong></div>
+              <div class="metric-chip">Outbox retries <strong id="bus-outbox-failed">-</strong></div>
+            </div>
+          </article>
+          <article class="card col-6 analytics-card">
+            <h2>Stream Lag</h2>
+            <div class="metric-stack">
+              <div class="metric-chip">Events pending <strong id="bus-events-pending">-</strong></div>
+              <div class="metric-chip">Memory pending <strong id="bus-memory-pending">-</strong></div>
+              <div class="metric-chip">Jobs pending <strong id="bus-jobs-pending">-</strong></div>
+              <div class="metric-chip">Prefix <strong id="bus-stream-prefix">-</strong></div>
+            </div>
+          </article>
+
+          <article class="card col-12 spotlight-card">
+            <h2>Telegram Bot</h2>
+            <div class="qr-grid">
+              <div class="qr-image-wrap telegram-panel">
+                {% if telegram_enabled %}
+                <div class="muted">Telegram está corriendo por long polling oficial. El canvas animará entrada, delegación, review, integración y respuesta.</div>
+                <div class="value compact-value">
+                  {% if telegram_bot_username.len() > 0 %}
+                  @{{ telegram_bot_username }}
+                  {% else %}
+                  username pendiente
+                  {% endif %}
+                </div>
+                {% else %}
+                <div class="muted">Activa <code>TELEGRAM_ENABLED=true</code> y configura el token del bot.</div>
+                {% endif %}
+              </div>
+              <div class="qr-copy">
+                <div class="muted">El supervisor recibe el chat desde Telegram, decide si responder directo o abrir plan, y crea burst workers efímeros solo si los recursos del host lo permiten.</div>
+                <div class="sub">Usa <strong>Flow</strong> para ver el grafo real de ejecución y <strong>Config</strong> para ajustar capacidad, agresividad del planner y política de rendimiento. La selección de skills y modelos es automática por tarea.</div>
+                {% if telegram_enabled %}
+                {% if telegram_bot_link.len() > 0 %}
+                <a class="wa-link-btn" href="{{ telegram_bot_link }}" target="_blank" rel="noreferrer">Abrir bot en Telegram</a>
+                {% else %}
+                <button class="wa-link-btn" type="button" disabled>Configura TELEGRAM_BOT_USERNAME</button>
+                {% endif %}
+                {% else %}
+                <button class="wa-link-btn" type="button" disabled>Telegram deshabilitado</button>
+                {% endif %}
+                <ul class="metric-list">
+                  <li>Estado: <strong>{% if telegram_enabled %}enabled{% else %}disabled{% endif %}</strong></li>
+                  <li>Username: <strong>{% if telegram_bot_username.len() > 0 %}@{{ telegram_bot_username }}{% else %}-{% endif %}</strong></li>
+                  <li>Workers efímeros: <strong>nacen y mueren según carga real + configuración</strong></li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-panel="flow">
+        <section class="tab-lead">
+          <div>
+            <p class="eyebrow">Execution graph</p>
+            <h2 class="tab-lead-title">Live orchestration flow</h2>
+            <p class="tab-lead-copy">Vista de control para seguir delegación, revisión, integración y delivery en tiempo real.</p>
+          </div>
+        </section>
+        <article class="card canvas-card canvas-card-wide canvas-shell">
+          <div class="canvas-head">
+            <div>
+              <h2>Flow Canvas</h2>
+              <div class="muted">Telegram -> Supervisor -> Persistent/Ephemeral workers -> Review -> Integrate -> Delivery. El canvas se reconstruye desde snapshot real y eventos runtime, sin demo fijo.</div>
+            </div>
+            <div class="canvas-badges">
+              <span class="canvas-badge">Persistent <strong id="canvas-persistent">{{ team_size }}</strong></span>
+              <span class="canvas-badge">Ephemeral <strong id="canvas-ephemeral">0</strong></span>
+              <span class="canvas-badge">Parallel <strong id="canvas-parallel">0</strong></span>
+              <span class="canvas-badge">CPU <strong id="canvas-cpu">-</strong></span>
+              <span class="canvas-badge">Mem <strong id="canvas-mem">-</strong></span>
+            </div>
+          </div>
+          <div class="turn-stage-strip" id="turn-stage-strip"></div>
+          <div class="graph-scroll" id="graph-scroll">
+            <div class="graph-stage" id="graph-stage">
+              <div id="cy-flow" class="cy-flow"></div>
+              <div id="graph-layer" class="graph-layer"></div>
+              <div id="packet-layer" class="packet-layer"></div>
+            </div>
+          </div>
+          <div class="canvas-legend">
+            <span><i class="legend-dot mobile"></i>Telegram</span>
+            <span><i class="legend-dot supervisor"></i>Supervisor</span>
+            <span><i class="legend-dot worker"></i>Persistent worker</span>
+            <span><i class="legend-dot ephemeral"></i>Ephemeral worker</span>
+            <span><i class="legend-dot review"></i>Review</span>
+            <span><i class="legend-dot integration"></i>Integration</span>
+            <span><i class="legend-dot task"></i>Task</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="events">
+        <section class="tab-lead">
+          <div>
+            <p class="eyebrow">Observability</p>
+            <h2 class="tab-lead-title">Channel and runtime feed</h2>
+            <p class="tab-lead-copy">Mensajes y eventos ordenados para entender qué entró, qué ejecutó Ferrum y cómo terminó cada turno.</p>
+          </div>
+        </section>
+        <div class="events-layout">
+          <article class="card side-panel log-card">
+            <h2>Messages</h2>
+            <div class="muted">Solo mensajes entrantes y salientes del canal.</div>
+            <div id="message-log" class="message-log"></div>
+          </article>
+          <article class="card side-panel log-card">
+            <h2>Runtime Events</h2>
+            <div class="muted">Plan, workers, retries, review, integración y delivery.</div>
+            <div id="events" class="event-log"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="config">
+        <section class="tab-lead">
+          <div>
+            <p class="eyebrow">Control plane</p>
+            <h2 class="tab-lead-title">Runtime configuration</h2>
+            <p class="tab-lead-copy">Ajusta capacidad, política y burst del team desde una consola visual más clara que el bootstrap inicial.</p>
+          </div>
+        </section>
+        <div class="config-layout">
+          <article class="card config-card">
+            <div class="config-head">
+              <div>
+                <h2>Team Control</h2>
+                <div class="muted">Estos parámetros reemplazan el bootstrap de entorno para el runtime activo y quedan persistidos en Postgres. Skills y modelos se resuelven automáticamente por tarea; aquí solo ajustas capacidad y política global.</div>
+              </div>
+              <div class="config-status" id="config-status">Sin cambios</div>
+            </div>
+            <form id="team-config-form" class="config-form">
+              <div class="field-grid">
+                <label>
+                  <span>Team size</span>
+                  <input type="number" min="1" id="cfg-team-size" />
+                </label>
+                <label>
+                  <span>Max parallel tasks</span>
+                  <input type="number" min="1" id="cfg-max-parallel" />
+                </label>
+                <label>
+                  <span>Subagent mode</span>
+                  <select id="cfg-subagent-mode">
+                    <option value="generalist">generalist</option>
+                    <option value="specialist">specialist</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Profile path</span>
+                  <input type="text" id="cfg-profile-path" placeholder="subagents" />
+                </label>
+                <label>
+                  <span>Review interval (ms)</span>
+                  <input type="number" min="100" step="100" id="cfg-review-interval" />
+                </label>
+                <label>
+                  <span>Performance policy</span>
+                  <select id="cfg-performance-policy">
+                    <option value="fast">fast</option>
+                    <option value="balanced_fast">balanced_fast</option>
+                    <option value="max_quality">max_quality</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Planner aggressiveness</span>
+                  <input type="number" min="0" max="100" step="5" id="cfg-planner-aggressiveness" />
+                </label>
+                <label>
+                  <span>Max escalation tier</span>
+                  <select id="cfg-escalation-tier">
+                    <option value="conservative">conservative</option>
+                    <option value="standard">standard</option>
+                    <option value="aggressive">aggressive</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Typing delay (ms)</span>
+                  <input type="number" min="0" step="100" id="cfg-typing-delay" />
+                </label>
+                <label>
+                  <span>Review loops per task</span>
+                  <input type="number" min="1" id="cfg-review-loops" />
+                </label>
+                <label>
+                  <span>Task retries</span>
+                  <input type="number" min="1" id="cfg-task-retries" />
+                </label>
+                <label>
+                  <span>Plan max tasks</span>
+                  <input type="number" min="1" id="cfg-plan-max-tasks" />
+                </label>
+                <label>
+                  <span>Plan max depth</span>
+                  <input type="number" min="1" id="cfg-plan-max-depth" />
+                </label>
+                <label>
+                  <span>Max ephemeral subagents</span>
+                  <input type="number" min="0" id="cfg-max-ephemeral" />
+                </label>
+                <label class="toggle-row">
+                  <span>Allow ephemeral subagents</span>
+                  <input type="checkbox" id="cfg-allow-ephemeral" />
+                </label>
+                <label class="toggle-row">
+                  <span>Require final review</span>
+                  <input type="checkbox" id="cfg-final-review" />
+                </label>
+                <label class="toggle-row">
+                  <span>Progress updates</span>
+                  <input type="checkbox" id="cfg-progress-updates" />
+                </label>
+                <label>
+                  <span>Progress threshold (ms)</span>
+                  <input type="number" min="500" step="100" id="cfg-progress-threshold" />
+                </label>
+              </div>
+
+              <label>
+                <span>Roleset</span>
+                <textarea id="cfg-roleset" rows="2" placeholder="researcher,implementer,verifier,integrator"></textarea>
+              </label>
+
+              <section class="config-note">
+                <div class="section-head">
+                  <h3>Asignación automática</h3>
+                  <div class="muted">Ferrum ya no expone overrides manuales de skills ni de modelos por rol o subagente. El supervisor y el broker eligen la combinación adecuada según la tarea, la modalidad, la latencia y el costo.</div>
+                </div>
+                <div class="auto-grid">
+                  <div class="auto-pill">
+                    <strong>Skills</strong>
+                    <span>Todos los subagentes comparten el catálogo completo.</span>
+                  </div>
+                  <div class="auto-pill">
+                    <strong>Capability Routes</strong>
+                    <span>Se resuelven automáticamente por tarea.</span>
+                  </div>
+                  <div class="auto-pill">
+                    <strong>Modelos OpenRouter</strong>
+                    <span>El broker selecciona el modelo concreto más adecuado.</span>
+                  </div>
+                </div>
+              </section>
+
+              <div class="config-actions">
+                <button class="primary-btn" type="submit">Guardar runtime settings</button>
+                <button class="secondary-btn" type="button" id="config-refresh-btn">Recargar desde runtime</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="card config-card">
+            <h2>Shared Skills Catalog</h2>
+            <div class="muted">Todos los agentes y subagentes heredan este catálogo. Ya no se gestiona skill por skill desde el panel; aquí solo inspeccionas qué capacidades tiene disponible Ferrum.</div>
+            <div id="skills-catalog" class="catalog-grid"></div>
+          </article>
+
+          <article class="card config-card danger-card">
+            <h2>Danger Zone</h2>
+            <div class="muted">Esto elimina toda la memoria conversacional y el estado runtime de Ferrum en Postgres y Redis. No borra `IDENTITY.md`, skills ni snapshots de configuración.</div>
+            <label>
+              <span>Escribe <strong>RESET</strong> para confirmar</span>
+              <input type="text" id="reset-data-confirm" placeholder="RESET" autocomplete="off" />
+            </label>
+            <div class="config-actions">
+              <button class="danger-btn" type="button" id="reset-data-btn">Resetear data</button>
+            </div>
+          </article>
+        </div>
+      </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const eventsEl = document.getElementById('events');
+    const messageLogEl = document.getElementById('message-log');
+    const queueEl = document.getElementById('queue-depth');
+    const queueInlineEl = document.getElementById('queue-depth-inline');
+    const stateEl = document.getElementById('runtime-state');
+    const tsEl = document.getElementById('ts');
+    const activeChannelEl = document.getElementById('active-channel');
+    const busEnabledEl = document.getElementById('bus-enabled');
+    const busOutboxPendingEl = document.getElementById('bus-outbox-pending');
+    const busOutboxPublishedEl = document.getElementById('bus-outbox-published');
+    const busOutboxFailedEl = document.getElementById('bus-outbox-failed');
+    const busEventsPendingEl = document.getElementById('bus-events-pending');
+    const busMemoryPendingEl = document.getElementById('bus-memory-pending');
+    const busJobsPendingEl = document.getElementById('bus-jobs-pending');
+    const busStreamPrefixEl = document.getElementById('bus-stream-prefix');
+    const teamSizeEl = document.getElementById('team-size');
+    const elasticCountEl = document.getElementById('elastic-count');
+    const elasticCapEl = document.getElementById('elastic-cap');
+    const activeTaskCountEl = document.getElementById('active-task-count');
+    const parallelWidthEl = document.getElementById('parallel-width');
+    const canvasPersistentEl = document.getElementById('canvas-persistent');
+    const canvasEphemeralEl = document.getElementById('canvas-ephemeral');
+    const canvasParallelEl = document.getElementById('canvas-parallel');
+    const effectiveParallelEl = document.getElementById('effective-parallel-limit');
+    const configuredTeamEl = document.getElementById('configured-team-size');
+    const hostCpuCoresEl = document.getElementById('host-cpu-cores');
+    const hostCpuUsageEl = document.getElementById('host-cpu-usage');
+    const hostMemoryPressureEl = document.getElementById('host-memory-pressure');
+    const hostFreeMemoryEl = document.getElementById('host-free-memory');
+    const hostConfiguredEphemeralEl = document.getElementById('host-configured-ephemeral');
+    const hostEffectiveEphemeralEl = document.getElementById('host-effective-ephemeral');
+    const plannerMaxTasksEl = document.getElementById('planner-max-tasks');
+    const plannerMaxDepthEl = document.getElementById('planner-max-depth');
+    const canvasCpuEl = document.getElementById('canvas-cpu');
+    const canvasMemEl = document.getElementById('canvas-mem');
+    const graphScroll = document.getElementById('graph-scroll');
+    const graphStage = document.getElementById('graph-stage');
+    const turnStageStripEl = document.getElementById('turn-stage-strip');
+    const cyFlowEl = document.getElementById('cy-flow');
+    const graphLayer = document.getElementById('graph-layer');
+    const packetLayer = document.getElementById('packet-layer');
+    const tabButtons = [...document.querySelectorAll('.tab-button')];
+    const tabPanels = [...document.querySelectorAll('.tab-panel')];
+    const configStatusEl = document.getElementById('config-status');
+    const configForm = document.getElementById('team-config-form');
+    const configRefreshBtn = document.getElementById('config-refresh-btn');
+    const skillsCatalogEl = document.getElementById('skills-catalog');
+    const resetDataBtn = document.getElementById('reset-data-btn');
+    const resetDataConfirmEl = document.getElementById('reset-data-confirm');
+
+    const maxEvents = 120;
+    const maxMessages = 80;
+    let runtimeConfig = null;
+    let teamSnapshot = [];
+    let skillsCatalog = [];
+    let lastStateSignature = '';
+    let lastTeamSignature = '';
+    let refreshTimer = null;
+    let pendingRefreshMode = 'light';
+    let refreshInFlight = false;
+    const debugEnabled = new URLSearchParams(window.location.search).get('debug') !== '0';
+    const debugBuffer = [];
+    const seenRuntimeEvents = new Set();
+    const seenMessageEvents = new Set();
+
+    const debugLog = (label, payload = {}) => {
+      const entry = {
+        at: new Date().toISOString(),
+        label,
+        payload,
+      };
+      debugBuffer.push(entry);
+      if (debugBuffer.length > 500) debugBuffer.shift();
+      if (debugEnabled) {
+        console.log('%c[Ferrum]', 'color:#0ea5e9;font-weight:800', label, payload);
+      }
+      return entry;
+    };
+    window.__FERRUM_DEBUG__ = {
+      enabled: debugEnabled,
+      logs: debugBuffer,
+      dump: () => JSON.stringify(debugBuffer, null, 2),
+    };
+    window.copyFerrumDebug = async () => {
+      const payload = JSON.stringify(debugBuffer, null, 2);
+      await navigator.clipboard.writeText(payload);
+      debugLog('debug.copied', { entries: debugBuffer.length });
+    };
+    debugLog('dashboard.boot', { debugEnabled });
+
+    const graphState = {
+      planId: null,
+      tasks: new Map(),
+      subagents: new Map(),
+      parallelBatch: [],
+      nodeRects: new Map(),
+      activities: new Map(),
+    };
+    let cy = null;
+    const turnStageOrder = ['ingest', 'context_load', 'classify', 'plan_if_needed', 'execute', 'integrate', 'deliver'];
+    const currentTurnTimeline = {
+      traceId: null,
+      preview: '',
+      activeStage: null,
+      stages: new Map(),
+    };
+
+    const escapedNodeId = (id) => {
+      if (!id) return '';
+      if (window.CSS && typeof window.CSS.escape === 'function') {
+        return window.CSS.escape(id);
+      }
+      return String(id).replace(/"/g, '\\"');
+    };
+
+    const category = (type) => {
+      if (!type) return 'event-type-run';
+      if (type.includes('task') || type.includes('artifact') || type.includes('batch') || type.includes('subagent')) return 'event-type-task';
+      if (type.includes('review') || type.includes('accepted') || type.includes('rejected')) return 'event-type-review';
+      if (type.includes('failed') || type.includes('error')) return 'event-type-error';
+      return 'event-type-planned';
+    };
+
+    const escapeHtml = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+    const activityPreview = (value, max = 52) => {
+      const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+      if (!text) return '';
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    };
+    const compactModel = (value) => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      const parts = raw.split('/');
+      return parts[parts.length - 1];
+    };
+
+    const shortPayload = (payload) => {
+      if (!payload || typeof payload !== 'object') return String(payload ?? '{}');
+      return JSON.stringify(payload, null, 2);
+    };
+
+    const normalizeState = (value) => String(value || 'idle').toLowerCase();
+    const csvList = (value) => Array.isArray(value)
+      ? value
+      : String(value || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+    const csvText = (value) => (Array.isArray(value) ? value : csvList(value)).join(',');
+    const stableSignature = (value) => JSON.stringify(value ?? null);
+
+    const setConfigStatus = (text, kind = 'idle') => {
+      configStatusEl.textContent = text;
+      configStatusEl.dataset.kind = kind;
+    };
+
+    const selectTab = (tabName) => {
+      tabButtons.forEach((button) => button.classList.toggle('active', button.dataset.tab === tabName));
+      tabPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === tabName));
+      if (tabName === 'flow') {
+        setTimeout(renderGraph, 30);
+      }
+    };
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => selectTab(button.dataset.tab));
+    });
+
+    const appendEvent = (evt) => {
+      const node = document.createElement('div');
+      const cls = category(evt.event_type || '');
+      const p = evt.payload || {};
+      const when = new Date(evt.created_at).toLocaleTimeString();
+      node.className = 'event-card';
+      node.innerHTML = `
+        <div class="meta"><span class="type ${cls}">${escapeHtml(evt.event_type)}</span><span>${escapeHtml(evt.id ? evt.id.slice(0, 8) : 'n/a')}</span></div>
+        <div class="meta"><span>${escapeHtml(p.subagent_id || p.plan_id || p.task_id || p.user_id || 'runtime')}</span><span>${escapeHtml(when)}</span></div>
+        <div class="payload">${escapeHtml(shortPayload(p))}</div>
+      `;
+      eventsEl.prepend(node);
+      while (eventsEl.children.length > maxEvents) {
+        eventsEl.removeChild(eventsEl.lastElementChild);
+      }
+      debugLog('ui.event.appended', {
+        id: evt.id,
+        type: evt.event_type,
+      });
+    };
+
+    const appendMessage = (kind, title, content, at, dedupeKey = null) => {
+      if (dedupeKey) {
+        if (seenMessageEvents.has(dedupeKey)) {
+          debugLog('ui.message.duplicate_skipped', { dedupeKey, kind, title });
+          return;
+        }
+        seenMessageEvents.add(dedupeKey);
+      }
+      const row = document.createElement('div');
+      row.className = `message-row ${kind}`;
+      const avatar = kind === 'inbound' ? 'TG' : (kind === 'outbound' ? 'AI' : 'SYS');
+      row.innerHTML = `
+        <div class="message-avatar ${kind}">${escapeHtml(avatar)}</div>
+        <div class="message-bubble ${kind}">
+          <div class="message-meta"><span>${escapeHtml(title)}</span><span>${escapeHtml(at)}</span></div>
+          <div class="message-text">${escapeHtml(content)}</div>
+        </div>
+      `;
+      messageLogEl.prepend(row);
+      while (messageLogEl.children.length > maxMessages) {
+        messageLogEl.removeChild(messageLogEl.lastElementChild);
+      }
+      debugLog('ui.message.appended', { kind, title, dedupeKey, content });
+    };
+
+    const ensureSubagent = (agent) => {
+      if (!agent || !agent.id) return null;
+      const existing = graphState.subagents.get(agent.id) || {};
+      const merged = {
+        id: agent.id,
+        role: agent.role || existing.role || 'worker',
+        state: normalizeState(agent.state || existing.state || 'idle'),
+        ephemeral: !!(agent.ephemeral ?? existing.ephemeral),
+        current_task_id: agent.current_task_id ?? existing.current_task_id ?? null,
+        last_review_score: agent.last_review_score ?? existing.last_review_score ?? 0,
+        last_error: agent.last_error ?? existing.last_error ?? null,
+        route_key: agent.route_key ?? existing.route_key ?? '',
+        model_route: agent.model_route ?? existing.model_route ?? '',
+        resolved_model: agent.resolved_model ?? existing.resolved_model ?? agent.model_route ?? existing.model_route ?? '',
+        allowed_skills: Array.isArray(agent.allowed_skills) ? agent.allowed_skills : (existing.allowed_skills || []),
+      };
+      graphState.subagents.set(merged.id, merged);
+      return merged;
+    };
+
+    const ensureTask = (task) => {
+      if (!task || !task.id) return null;
+      const existing = graphState.tasks.get(task.id) || {};
+      const merged = {
+        id: task.id,
+        title: task.title || existing.title || task.id,
+        dependencies: Array.isArray(task.dependencies) ? task.dependencies : (existing.dependencies || []),
+        role: task.role || task.candidate_role || existing.role || 'worker',
+        route_key: task.route_key || existing.route_key || '',
+        model_route: task.model_route || existing.model_route || '',
+        resolved_model: task.resolved_model || existing.resolved_model || task.model_route || existing.model_route || '',
+        state: normalizeState(task.state || existing.state || 'pending'),
+        assigned_to: task.assigned_to || existing.assigned_to || null,
+        attempts: task.attempts ?? existing.attempts ?? 0,
+        review_loops: task.review_loops ?? existing.review_loops ?? 0,
+      };
+      graphState.tasks.set(merged.id, merged);
+      return merged;
+    };
+
+    const removeSubagent = (subagentId) => {
+      const existing = graphState.subagents.get(subagentId);
+      if (!existing) return;
+      existing.state = 'gone';
+      renderGraph();
+      setTimeout(() => {
+        graphState.subagents.delete(subagentId);
+        graphState.activities.delete(subagentId);
+        renderGraph();
+      }, 700);
+    };
+
+    const setActivity = (nodeId, text, kind = 'work', ttlMs = 9000) => {
+      const preview = activityPreview(text);
+      if (!nodeId || !preview) return;
+      const entry = {
+        text: preview,
+        kind,
+        expiresAt: Date.now() + ttlMs,
+      };
+      graphState.activities.set(nodeId, entry);
+      window.setTimeout(() => {
+        const current = graphState.activities.get(nodeId);
+        if (current && current.expiresAt === entry.expiresAt) {
+          graphState.activities.delete(nodeId);
+          renderGraph();
+        }
+      }, ttlMs + 40);
+    };
+
+    const clearActivity = (nodeId) => {
+      graphState.activities.delete(nodeId);
+    };
+
+    const renderActivities = () => {
+      const now = Date.now();
+      for (const [nodeId, activity] of [...graphState.activities.entries()]) {
+        if (!activity || activity.expiresAt <= now) {
+          graphState.activities.delete(nodeId);
+        }
+      }
+
+      graphState.activities.forEach((activity, nodeId) => {
+        const rect = graphState.nodeRects.get(nodeId) || graphState.nodeRects.get(`task:${nodeId}`);
+        if (!rect) return;
+        const chip = document.createElement('div');
+        chip.className = `activity-chip ${activity.kind || 'work'}`;
+        chip.style.left = `${rect.x + Math.max(10, rect.width / 2 - 108)}px`;
+        chip.style.top = `${Math.max(10, rect.y - 46)}px`;
+        chip.innerHTML = `
+          <span class="activity-dot"></span>
+          <span>${escapeHtml(activity.text)}</span>
+        `;
+        packetLayer.appendChild(chip);
+      });
+    };
+
+    const updateResourceWidgets = (resources, settings = runtimeConfig?.team || null) => {
+      if (!resources) return;
+      hostCpuCoresEl.textContent = resources.cpu_cores ?? '-';
+      hostCpuUsageEl.textContent = resources.cpu_usage_pct != null ? `${Number(resources.cpu_usage_pct).toFixed(1)}%` : '-';
+      hostMemoryPressureEl.textContent = resources.memory_pressure_pct != null ? `${Number(resources.memory_pressure_pct).toFixed(1)}%` : '-';
+      hostFreeMemoryEl.textContent = resources.available_memory_mb != null ? `${Number(resources.available_memory_mb).toLocaleString()} MB` : '-';
+      canvasCpuEl.textContent = resources.cpu_usage_pct != null ? `${Number(resources.cpu_usage_pct).toFixed(0)}%` : '-';
+      canvasMemEl.textContent = resources.memory_pressure_pct != null ? `${Number(resources.memory_pressure_pct).toFixed(0)}%` : '-';
+      if (settings) {
+        hostConfiguredEphemeralEl.textContent = settings.max_ephemeral_subagents;
+        plannerMaxTasksEl.textContent = settings.plan_max_tasks;
+        plannerMaxDepthEl.textContent = settings.plan_max_depth;
+      }
+      hostEffectiveEphemeralEl.textContent = resources.suggested_ephemeral_capacity ?? '-';
+    };
+
+    const updateCounters = (teamPayload = null) => {
+      const allAgents = teamPayload?.team ? teamPayload.team : [...graphState.subagents.values()];
+      const persistentCount = teamPayload?.persistent_subagents ?? allAgents.filter((x) => !x.ephemeral).length;
+      const ephemeralCount = teamPayload?.ephemeral_subagents ?? allAgents.filter((x) => x.ephemeral).length;
+      const effectiveEphemeral = teamPayload?.effective_ephemeral_capacity ?? Number(elasticCapEl.textContent || '0');
+      const activeTasks = [...graphState.tasks.values()].filter((task) => ['assigned', 'running', 'waiting_review', 'retrying'].includes(task.state)).length;
+      teamSizeEl.textContent = persistentCount;
+      elasticCountEl.textContent = ephemeralCount;
+      elasticCapEl.textContent = effectiveEphemeral;
+      canvasPersistentEl.textContent = persistentCount;
+      canvasEphemeralEl.textContent = ephemeralCount;
+      activeTaskCountEl.textContent = activeTasks;
+      parallelWidthEl.textContent = graphState.parallelBatch.length;
+      canvasParallelEl.textContent = graphState.parallelBatch.length;
+    };
+
+    const prettyStageName = (stage) => ({
+      ingest: 'Ingest',
+      context_load: 'Context',
+      classify: 'Classify',
+      plan_if_needed: 'Plan',
+      execute: 'Execute',
+      integrate: 'Integrate',
+      deliver: 'Deliver',
+    }[stage] || stage);
+
+    const renderTurnStages = () => {
+      if (!turnStageStripEl) return;
+      turnStageStripEl.innerHTML = '';
+      turnStageOrder.forEach((stage) => {
+        const state = currentTurnTimeline.stages.get(stage);
+        const pill = document.createElement('div');
+        pill.className = `turn-stage-pill ${state ? 'seen' : ''} ${currentTurnTimeline.activeStage === stage ? 'active' : ''}`;
+        const detail = state?.route_key || state?.resolved_model || state?.reason || state?.route || state?.preview || '';
+        pill.innerHTML = `
+          <strong>${escapeHtml(prettyStageName(stage))}</strong>
+          <span>${escapeHtml(activityPreview(detail, 36) || 'idle')}</span>
+        `;
+        turnStageStripEl.appendChild(pill);
+      });
+    };
+
+    const updateTurnStage = (payload) => {
+      const traceId = payload?.trace_id || null;
+      if (!traceId) return;
+      if (currentTurnTimeline.traceId !== traceId) {
+        currentTurnTimeline.traceId = traceId;
+        currentTurnTimeline.preview = payload.preview || '';
+        currentTurnTimeline.activeStage = null;
+        currentTurnTimeline.stages = new Map();
+      }
+      currentTurnTimeline.activeStage = payload.stage;
+      currentTurnTimeline.stages.set(payload.stage, {
+        preview: payload.preview || '',
+        route: payload.route || '',
+        route_key: payload.route_key || '',
+        resolved_model: compactModel(payload.resolved_model || ''),
+        reason: payload.reason || '',
+      });
+      renderTurnStages();
+    };
+
+    const pulseGraphNode = (id, kind = 'inbound') => {
+      if (!cy) return;
+      let node = cy.getElementById(id);
+      if (node.empty()) node = cy.getElementById(`task:${id}`);
+      if (!node || node.empty()) return;
+      const flashClass = `flash-${kind}`;
+      node.removeClass(flashClass);
+      node.addClass(flashClass);
+      setTimeout(() => node.removeClass(flashClass), 1100);
+    };
+
+    const taskLevels = () => {
+      const levels = new Map();
+      const depthOf = (task) => {
+        if (!task) return 0;
+        if (levels.has(task.id)) return levels.get(task.id);
+        if (!task.dependencies || task.dependencies.length === 0) {
+          levels.set(task.id, 0);
+          return 0;
+        }
+        const depth = Math.max(...task.dependencies.map((depId) => {
+          const dep = graphState.tasks.get(depId);
+          return dep ? depthOf(dep) + 1 : 1;
+        }));
+        levels.set(task.id, depth);
+        return depth;
+      };
+      [...graphState.tasks.values()].forEach(depthOf);
+      return levels;
+    };
+
+    const ensureCy = () => {
+      if (cy || !cyFlowEl || typeof window.cytoscape !== 'function') return cy;
+      cy = window.cytoscape({
+        container: cyFlowEl,
+        elements: [],
+        style: [
+          {
+            selector: 'node',
+            style: {
+              shape: 'round-rectangle',
+              width: 'data(width)',
+              height: 'data(height)',
+              label: 'data(label)',
+              'font-family': 'inherit',
+              'font-size': 13,
+              'font-weight': 800,
+              color: '#eef6ff',
+              'text-wrap': 'wrap',
+              'text-max-width': '150px',
+              'text-valign': 'center',
+              'text-halign': 'center',
+              'border-width': 1.8,
+              'border-color': '#7da6ff',
+              'background-color': '#1d2c57',
+              'padding': '12px',
+              'overlay-opacity': 0,
+              'shadow-blur': 22,
+              'shadow-opacity': 0.28,
+              'shadow-color': '#09142a',
+              'shadow-offset-y': 14,
+              'text-outline-width': 0,
+              'transition-property': 'background-color, border-color, line-color, width, shadow-blur, shadow-opacity',
+              'transition-duration': '180ms',
+            }
+          },
+          {
+            selector: 'edge',
+            style: {
+              width: 2.2,
+              'curve-style': 'bezier',
+              'target-arrow-shape': 'triangle',
+              'arrow-scale': 0.82,
+              'line-color': '#6e8fdb',
+              'target-arrow-color': '#6e8fdb',
+              opacity: 0.78,
+            }
+          },
+          { selector: '.mobile', style: { 'background-color': '#0b6b86', 'border-color': '#8fe0ff', 'shadow-color': '#0e85a7' } },
+          { selector: '.supervisor', style: { 'background-color': '#243a74', 'border-color': '#95b7ff', 'shadow-color': '#2c4f99' } },
+          { selector: '.worker', style: { 'background-color': '#1f3362', 'border-color': '#89abff', 'shadow-color': '#203a77' } },
+          { selector: '.ephemeral', style: { 'background-color': '#5c3d24', 'border-color': '#ffb98e', 'shadow-color': '#8f5b2d', 'border-style': 'dashed' } },
+          { selector: '.review', style: { 'background-color': '#503170', 'border-color': '#d6a8ff', 'shadow-color': '#6d42a1' } },
+          { selector: '.integration', style: { 'background-color': '#5c4518', 'border-color': '#ffd184', 'shadow-color': '#8d6613' } },
+          { selector: '.delivery', style: { 'background-color': '#155543', 'border-color': '#84efcb', 'shadow-color': '#19735a' } },
+          { selector: '.task', style: { 'background-color': '#1c2a54', 'border-color': '#93b4ff', 'shadow-color': '#152247' } },
+          { selector: '.state-running', style: { 'border-color': '#7decc8', 'border-width': 2.8, 'shadow-blur': 30, 'shadow-opacity': 0.36 } },
+          { selector: '.state-failed, .state-rejected', style: { 'border-color': '#ff8b93', 'background-color': '#5d2434', 'shadow-color': '#8c3146' } },
+          { selector: '.state-accepted, .state-completed', style: { 'border-color': '#8ef0cd', 'background-color': '#1b5c49', 'shadow-color': '#19715a' } },
+          { selector: '.hot', style: { 'border-width': 3.2, 'border-color': '#f8d06f', 'shadow-blur': 28, 'shadow-color': '#b58b21', 'shadow-opacity': 0.34 } },
+          { selector: '.edge-control', style: { 'line-color': '#5d7fce', 'target-arrow-color': '#5d7fce' } },
+          { selector: '.edge-elastic', style: { 'line-color': '#7decc8', 'target-arrow-color': '#7decc8' } },
+          { selector: '.edge-review', style: { 'line-color': '#d69bf3', 'target-arrow-color': '#d69bf3' } },
+          { selector: '.edge-integration', style: { 'line-color': '#f2c875', 'target-arrow-color': '#f2c875' } },
+          { selector: '.edge-delivery', style: { 'line-color': '#7decc8', 'target-arrow-color': '#7decc8' } },
+          { selector: '.edge-work', style: { 'line-color': '#9ab6ff', 'target-arrow-color': '#9ab6ff' } },
+          { selector: '.edge-accept', style: { 'line-color': '#8ef0cd', 'target-arrow-color': '#8ef0cd' } },
+          { selector: '.edge-error', style: { 'line-color': '#ff8b93', 'target-arrow-color': '#ff8b93' } },
+          { selector: '.edge-dependency', style: { 'line-style': 'dashed', 'line-color': '#8194c3', 'target-arrow-color': '#8194c3' } },
+          { selector: '.flash-inbound', style: { 'border-width': 4, 'border-color': '#67d4ff' } },
+          { selector: '.flash-work', style: { 'border-width': 4, 'border-color': '#f8d06f' } },
+          { selector: '.flash-review', style: { 'border-width': 4, 'border-color': '#d69bf3' } },
+          { selector: '.flash-outbound', style: { 'border-width': 4, 'border-color': '#8ef0cd' } },
+          { selector: '.flash-error', style: { 'border-width': 4, 'border-color': '#ff8b93' } },
+        ],
+        layout: { name: 'preset', fit: false, padding: 20 },
+        wheelSensitivity: 0.18,
+      });
+      cy.userZoomingEnabled(true);
+      cy.userPanningEnabled(true);
+      return cy;
+    };
+
+    const renderGraph = () => {
+      if (!graphStage) return;
+      graphLayer.innerHTML = '';
+      packetLayer.innerHTML = '';
+      graphState.nodeRects.clear();
+      ensureCy();
+
+      const stageViewport = graphScroll?.clientWidth || graphStage.clientWidth || 1200;
+      const persistent = [...graphState.subagents.values()].filter((agent) => !agent.ephemeral);
+      const ephemeral = [...graphState.subagents.values()].filter((agent) => agent.ephemeral);
+      const taskEntries = [...graphState.tasks.values()];
+      const taskLevelMap = taskLevels();
+      const maxLevel = Math.max(0, ...taskEntries.map((task) => taskLevelMap.get(task.id) || 0));
+      const workerColumns = Math.max(Math.ceil(persistent.length / 4), 1) + Math.max(Math.ceil(ephemeral.length / 4), 1);
+      const stageWidth = Math.max(stageViewport - 4, 1200 + maxLevel * 190 + Math.max(0, workerColumns - 2) * 170);
+      const height = Math.max(640, 320 + Math.max(Math.ceil(persistent.length / 4), Math.ceil(ephemeral.length / 4), taskEntries.length) * 120);
+      graphStage.style.width = `${stageWidth}px`;
+      graphStage.style.height = `${height}px`;
+      if (cyFlowEl) {
+        cyFlowEl.style.width = `${stageWidth}px`;
+        cyFlowEl.style.height = `${height}px`;
+      }
+
+      const nodes = [];
+      const edges = [];
+      const putNode = (id, classes, title, meta, x, y, width, height, icon = '') => {
+        const label = `${icon ? `${icon} ` : ''}${title}${meta ? `\n${meta}` : ''}`;
+        nodes.push({
+          data: { id, label, width, height },
+          classes,
+          position: { x: x + width / 2, y: y + height / 2 },
+        });
+        graphState.nodeRects.set(id, { x, y, width, height });
+      };
+      const putEdge = (id, source, target, kind) => {
+        if (!graphState.nodeRects.get(source) || !graphState.nodeRects.get(target)) return;
+        edges.push({ data: { id, source, target }, classes: `edge-${kind}` });
+      };
+
+      putNode('telegram-mobile', 'mobile', 'Telegram', 'Inbound / outbound channel', 36, height / 2 - 80, 170, 160, '✈');
+      putNode('supervisor', 'supervisor', 'Supervisor', 'Route · Plan · Dispatch · Review', 250, height / 2 - 96, 220, 190, 'S');
+      putNode('review-lane', 'review', 'Review', 'Quality gate · retries · reject/accept', 520, height - 162, 190, 110, 'R');
+      putNode('integration', 'integration', 'Integration', 'Merge accepted artifacts', 760, height - 162, 190, 110, 'I');
+      putNode('delivery', 'delivery', 'Delivery', 'Final answer back to Telegram', 1000, height - 162, 200, 110, 'D');
+
+      const placeAgents = (agents, baseX, baseY = 40) => {
+        agents.forEach((agent, index) => {
+          const row = index % 4;
+          const col = Math.floor(index / 4);
+          const x = baseX + col * 190;
+          const y = baseY + row * 106;
+          const state = agent.state || 'idle';
+          const model = compactModel(agent.resolved_model || agent.model_route);
+          const route = agent.route_key ? ` · ${agent.route_key}` : '';
+          const meta = `${agent.role} · ${state}${route}${model ? ` · ${model}` : ''}${agent.current_task_id ? ` · ${agent.current_task_id}` : ''}`;
+          putNode(agent.id, `worker ${agent.ephemeral ? 'ephemeral' : ''} state-${state}`, agent.id, meta, x, y, 170, 84);
+        });
+      };
+
+      placeAgents(persistent, 520, 40);
+      placeAgents(ephemeral, 720 + Math.max(0, Math.ceil(persistent.length / 4) - 1) * 190, 40);
+
+      const taskBaseX = 980 + Math.max(0, Math.ceil((persistent.length + ephemeral.length) / 4) - 2) * 170;
+      const columns = Array.from({ length: maxLevel + 1 }, (_, idx) => idx);
+      columns.forEach((level) => {
+        const levelTasks = taskEntries.filter((task) => (taskLevelMap.get(task.id) || 0) === level);
+        levelTasks.forEach((task, index) => {
+          const x = taskBaseX + level * 190;
+          const y = 48 + index * 112;
+          const hot = graphState.parallelBatch.includes(task.id) ? ' hot' : '';
+          const model = compactModel(task.resolved_model || task.model_route);
+          const route = task.route_key ? ` · ${task.route_key}` : '';
+          const meta = `${task.role || 'worker'} · ${task.state}${route}${model ? ` · ${model}` : ''}${task.assigned_to ? ` · ${task.assigned_to}` : ''}`;
+          putNode(`task:${task.id}`, `task state-${task.state}${hot}`, task.title || task.id, meta, x, y, 176, 94);
+        });
+      });
+
+      putEdge('edge-mobile-supervisor', 'telegram-mobile', 'supervisor', 'control');
+      putEdge('edge-supervisor-review', 'supervisor', 'review-lane', 'control');
+      putEdge('edge-review-integration', 'review-lane', 'integration', 'review');
+      putEdge('edge-integration-delivery', 'integration', 'delivery', 'integration');
+      putEdge('edge-delivery-mobile', 'delivery', 'telegram-mobile', 'delivery');
+
+      [...graphState.subagents.values()].forEach((agent) => {
+        putEdge(`edge-supervisor-${agent.id}`, 'supervisor', agent.id, agent.ephemeral ? 'elastic' : 'control');
+        putEdge(`edge-${agent.id}-review`, agent.id, 'review-lane', 'review');
+      });
+      taskEntries.forEach((task) => {
+        (task.dependencies || []).forEach((depId) => putEdge(`edge-dep-${depId}-${task.id}`, `task:${depId}`, `task:${task.id}`, 'dependency'));
+        if (task.assigned_to) {
+          putEdge(`edge-work-${task.assigned_to}-${task.id}`, task.assigned_to, `task:${task.id}`, 'work');
+        }
+        if (task.state === 'accepted' || task.state === 'completed') {
+          putEdge(`edge-accept-${task.id}`, `task:${task.id}`, 'integration', 'accept');
+        }
+        if (task.state === 'failed' || task.state === 'rejected') {
+          putEdge(`edge-error-${task.id}`, `task:${task.id}`, 'review-lane', 'error');
+        }
+      });
+
+      if (cy) {
+        cy.batch(() => {
+          cy.elements().remove();
+          cy.add([...nodes, ...edges]);
+        });
+        cy.resize();
+      }
+
+      renderActivities();
+      updateCounters();
+      debugLog('flow.render', {
+        planId: graphState.planId,
+        tasks: graphState.tasks.size,
+        subagents: graphState.subagents.size,
+        activities: graphState.activities.size,
+        parallelBatch: graphState.parallelBatch.length,
+      });
+    };
+
+    const emitPacket = (fromId, toId, kind = 'control') => {
+      const from = graphState.nodeRects.get(fromId) || graphState.nodeRects.get(`task:${fromId}`);
+      const to = graphState.nodeRects.get(toId) || graphState.nodeRects.get(`task:${toId}`);
+      if (!from || !to) return;
+      const packet = document.createElement('div');
+      packet.className = `flow-packet ${kind}`;
+      packet.style.left = `${from.x + from.width / 2}px`;
+      packet.style.top = `${from.y + from.height / 2}px`;
+      packetLayer.appendChild(packet);
+      requestAnimationFrame(() => {
+        packet.style.transform = `translate(${to.x + to.width / 2 - (from.x + from.width / 2)}px, ${to.y + to.height / 2 - (from.y + from.height / 2)}px)`;
+        packet.style.opacity = '1';
+      });
+      setTimeout(() => packet.remove(), 1000);
+    };
+
+    const emitBubble = (fromId, toId, label, kind = 'inbound') => {
+      const from = graphState.nodeRects.get(fromId) || graphState.nodeRects.get(`task:${fromId}`);
+      const to = graphState.nodeRects.get(toId) || graphState.nodeRects.get(`task:${toId}`);
+      if (!from || !to) return;
+      const bubble = document.createElement('div');
+      bubble.className = `flow-bubble ${kind}`;
+      bubble.textContent = String(label || '').trim() || kind;
+      bubble.style.left = `${from.x + from.width / 2}px`;
+      bubble.style.top = `${from.y + from.height / 2 - 28}px`;
+      packetLayer.appendChild(bubble);
+      requestAnimationFrame(() => {
+        bubble.style.opacity = '1';
+        bubble.style.transform = `translate(${to.x + to.width / 2 - (from.x + from.width / 2)}px, ${to.y + to.height / 2 - (from.y + from.height / 2)}px) scale(1)`;
+      });
+      setTimeout(() => {
+        bubble.style.opacity = '0';
+      }, 900);
+      setTimeout(() => bubble.remove(), 1300);
+    };
+
+    const applyRuntimeEvent = (evt, options = {}) => {
+      const replay = !!options.replay;
+      if (evt?.id) {
+        if (seenRuntimeEvents.has(evt.id)) {
+          debugLog('flow.event.duplicate_skipped', { id: evt.id, type: evt.event_type, replay });
+          return;
+        }
+        seenRuntimeEvents.add(evt.id);
+      }
+      debugLog('flow.event.received', {
+        id: evt?.id,
+        type: evt?.event_type,
+        replay,
+        payload: evt?.payload || {},
+      });
+      const payload = evt.payload || {};
+      let needsRender = false;
+      const maybePulse = (nodeId, kind) => {
+        if (!replay) pulseGraphNode(nodeId, kind);
+      };
+      const maybeBubble = (fromId, toId, label, kind) => {
+        if (!replay) emitBubble(fromId, toId, label, kind);
+      };
+      const maybePacket = (fromId, toId, kind) => {
+        if (!replay) emitPacket(fromId, toId, kind);
+      };
+      switch (evt.event_type) {
+        case 'telegram_message_received':
+          appendMessage(
+            'inbound',
+            `Telegram ${payload.user_id || ''}`.trim(),
+            payload.content || payload.text || '(empty)',
+            new Date(evt.created_at || Date.now()).toLocaleTimeString(),
+            payload.event_id || evt.id || `telegram:${payload.user_id}:${payload.content || payload.text || ''}`
+          );
+          maybePulse('telegram-mobile', 'inbound');
+          maybePulse('supervisor', 'inbound');
+          setActivity('telegram-mobile', payload.content || payload.text || 'Nuevo mensaje', 'inbound', 12000);
+          setActivity('supervisor', `Nuevo chat: ${payload.content || payload.text || 'mensaje'}`, 'inbound', 12000);
+          maybeBubble('telegram-mobile', 'supervisor', payload.content || payload.text || 'new message', 'inbound');
+          maybePacket('telegram-mobile', 'supervisor', 'inbound');
+          needsRender = true;
+          break;
+        case 'conversation_turn_created':
+          if (payload.role === 'assistant') {
+            setActivity('supervisor', payload.content || 'Respuesta generada', 'outbound', 9000);
+            needsRender = true;
+          }
+          break;
+        case 'supervisor_started':
+          maybePulse('supervisor', 'inbound');
+          setActivity('supervisor', `Recibido: ${payload.preview || 'nuevo turno'}`, 'inbound', 12000);
+          needsRender = true;
+          break;
+        case 'supervisor_fast_path':
+          maybePulse('supervisor', 'work');
+          setActivity('supervisor', `Fast path: ${payload.preview || payload.strategy || 'direct reply'}`, 'work', 10000);
+          maybeBubble('supervisor', 'delivery', payload.preview || payload.strategy || 'fast path', 'work');
+          maybePacket('supervisor', 'delivery', 'work');
+          needsRender = true;
+          break;
+        case 'supervisor_thinking':
+          maybePulse('supervisor', 'review');
+          setActivity('supervisor', `Analizando: ${payload.preview || 'turno'}`, 'review', 14000);
+          needsRender = true;
+          break;
+        case 'supervisor_model_selected':
+          setActivity(
+            'supervisor',
+            `${payload.phase || 'model'} · ${payload.route_key || ''}${payload.resolved_model ? ` · ${compactModel(payload.resolved_model)}` : ''}`,
+            'review',
+            12000
+          );
+          updateTurnStage({
+            trace_id: payload.trace_id,
+            stage: payload.phase === 'planner' ? 'plan_if_needed' : payload.phase === 'tool_synthesis' ? 'integrate' : payload.phase === 'fast_reply' ? 'classify' : 'classify',
+            route_key: payload.route_key,
+            resolved_model: payload.resolved_model,
+            reason: payload.reason,
+            preview: payload.phase || 'model',
+          });
+          needsRender = true;
+          break;
+        case 'supervisor_planning':
+          maybePulse('supervisor', 'work');
+          setActivity('supervisor', `Planificando: ${payload.preview || 'tareas'}`, 'work', 14000);
+          needsRender = true;
+          break;
+        case 'supervisor_tooling':
+          maybePulse('supervisor', 'work');
+          setActivity('supervisor', `Ejecutando ${payload.tool_calls || 0} tools`, 'work', 12000);
+          needsRender = true;
+          break;
+        case 'supervisor_integrating':
+          maybePulse('supervisor', 'outbound');
+          maybePulse('integration', 'outbound');
+          setActivity('supervisor', `Integrando ${payload.accepted_tasks || 0} artefactos`, 'outbound', 12000);
+          setActivity('integration', 'Sintetizando respuesta final', 'outbound', 12000);
+          maybeBubble('supervisor', 'integration', 'integrate', 'outbound');
+          maybePacket('supervisor', 'integration', 'outbound');
+          needsRender = true;
+          break;
+        case 'supervisor_completed':
+          maybePulse('supervisor', 'outbound');
+          maybePulse('delivery', 'outbound');
+          setActivity('supervisor', payload.preview || 'Respuesta lista', 'outbound', 9000);
+          setActivity('delivery', 'Entrega preparada', 'outbound', 9000);
+          maybeBubble('supervisor', 'delivery', payload.preview || 'ready', 'outbound');
+          maybePacket('supervisor', 'delivery', 'outbound');
+          needsRender = true;
+          break;
+        case 'outbound_message_sent':
+          appendMessage(
+            'outbound',
+            `Ferrum -> ${payload.recipient || ''}`.trim(),
+            payload.content || '(empty)',
+            new Date(evt.created_at || Date.now()).toLocaleTimeString(),
+            payload.provider_message_id || evt.id || `outbound:${payload.recipient}:${payload.content || ''}`
+          );
+          maybePulse('delivery', 'outbound');
+          maybePulse('telegram-mobile', 'outbound');
+          setActivity('delivery', payload.content || 'Reply enviada', 'outbound', 11000);
+          setActivity('telegram-mobile', 'Usuario recibio respuesta', 'outbound', 11000);
+          maybeBubble('delivery', 'telegram-mobile', payload.content || 'reply', 'outbound');
+          maybePacket('delivery', 'telegram-mobile', 'outbound');
+          needsRender = true;
+          break;
+        case 'outbound_message_failed':
+          appendMessage(
+            'system',
+            'Outbound failed',
+            payload.error || 'send failed',
+            new Date(evt.created_at || Date.now()).toLocaleTimeString(),
+            evt.id || `outbound_failed:${payload.recipient || ''}:${payload.error || ''}`
+          );
+          maybePulse('delivery', 'error');
+          maybePulse('telegram-mobile', 'error');
+          setActivity('delivery', payload.error || 'Envio fallido', 'error', 12000);
+          maybeBubble('delivery', 'telegram-mobile', payload.error || 'send failed', 'error');
+          maybePacket('delivery', 'telegram-mobile', 'error');
+          needsRender = true;
+          break;
+        case 'turn_stage_changed':
+          updateTurnStage(payload);
+          switch (payload.stage) {
+            case 'ingest':
+              setActivity('telegram-mobile', payload.preview || 'Nuevo mensaje', 'inbound', 9000);
+              setActivity('supervisor', `Ingest · ${payload.preview || 'turno'}`, 'inbound', 9000);
+              break;
+            case 'context_load':
+              setActivity('supervisor', 'Cargando contexto y memoria', 'review', 9000);
+              break;
+            case 'classify':
+              setActivity('supervisor', `Clasificando · ${payload.reason || payload.preview || 'turno'}`, 'review', 9000);
+              break;
+            case 'plan_if_needed':
+              setActivity('supervisor', `Planificando · ${payload.reason || payload.preview || 'tareas'}`, 'work', 12000);
+              break;
+            case 'execute':
+              setActivity('supervisor', `Ejecutando · ${payload.route || payload.preview || 'plan'}`, 'work', 12000);
+              break;
+            case 'integrate':
+              setActivity('integration', 'Integrando artefactos', 'outbound', 12000);
+              break;
+            case 'deliver':
+              setActivity('delivery', `Deliver · ${payload.route || 'reply'}`, 'outbound', 12000);
+              break;
+            default:
+              break;
+          }
+          needsRender = true;
+          break;
+        case 'plan_created':
+          graphState.planId = payload.plan_id || null;
+          graphState.tasks.clear();
+          (payload.tasks || []).forEach((task) => ensureTask(task));
+          graphState.parallelBatch = payload.parallelizable_groups?.[0] || [];
+          setActivity('supervisor', `Plan creado: ${payload.task_count || (payload.tasks || []).length} tareas`, 'work', 14000);
+          needsRender = true;
+          break;
+        case 'plan_updated':
+          (payload.tasks || []).forEach((task) => ensureTask(task));
+          needsRender = true;
+          break;
+        case 'parallel_batch_started':
+          graphState.parallelBatch = Array.isArray(payload.task_ids) ? payload.task_ids : [];
+          setActivity('supervisor', `Despachando batch paralelo x${payload.width || graphState.parallelBatch.length || 0}`, 'work', 10000);
+          if (!replay) {
+            setTimeout(() => {
+              pulseGraphNode('supervisor', 'work');
+              graphState.parallelBatch.forEach((taskId) => emitPacket('supervisor', `task:${taskId}`, 'control'));
+            }, 40);
+          }
+          needsRender = true;
+          break;
+        case 'subagent_spawned':
+          ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'assigned',
+            ephemeral: true,
+            current_task_id: payload.task_id || null,
+          });
+          setActivity(payload.subagent_id, `Spawn ${payload.role || 'worker'} -> ${payload.task_id || 'task'}`, 'spawn', 12000);
+          maybePulse('supervisor', 'work');
+          maybeBubble('supervisor', payload.subagent_id, `spawn ${payload.role || 'worker'}`, 'spawn');
+          maybePacket('supervisor', payload.subagent_id, 'spawn');
+          needsRender = true;
+          break;
+        case 'subagent_destroyed':
+          maybePulse(payload.subagent_id, 'outbound');
+          maybePulse('supervisor', 'outbound');
+          maybeBubble(payload.subagent_id, 'supervisor', 'release', 'spawn');
+          maybePacket(payload.subagent_id, 'supervisor', 'return');
+          removeSubagent(payload.subagent_id);
+          needsRender = true;
+          break;
+        case 'task_assigned': {
+          const modelLabel = compactModel(payload.resolved_model || payload.model_route);
+          const task = ensureTask({
+            id: payload.task_id,
+            title: payload.title,
+            dependencies: payload.dependencies,
+            role: payload.role,
+            route_key: payload.route_key,
+            model_route: payload.model_route,
+            resolved_model: payload.resolved_model,
+            state: 'assigned',
+            assigned_to: payload.subagent_id,
+          });
+          const agent = ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'assigned',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.task_id,
+            route_key: payload.route_key,
+            resolved_model: payload.resolved_model,
+          });
+          if (task && agent) {
+            maybePulse('supervisor', 'work');
+            maybePulse(payload.subagent_id, 'work');
+            setActivity(payload.subagent_id, `Asignado: ${task.title || payload.task_id}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 12000);
+            setActivity(`task:${payload.task_id}`, `Asignado a ${payload.subagent_id}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 12000);
+            maybeBubble('supervisor', payload.subagent_id, task.title || payload.task_id, 'work');
+            maybePacket('supervisor', payload.subagent_id, 'control');
+          }
+          needsRender = true;
+          break;
+        }
+        case 'task_started': {
+          const modelLabel = compactModel(payload.resolved_model || payload.model_route);
+          const task = ensureTask({
+            id: payload.task_id,
+            state: 'running',
+            route_key: payload.route_key,
+            model_route: payload.model_route,
+            resolved_model: payload.resolved_model,
+            assigned_to: payload.subagent_id,
+          });
+          const agent = ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'running',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.task_id,
+            route_key: payload.route_key,
+            resolved_model: payload.resolved_model,
+          });
+          if (task && agent) {
+            maybePulse(payload.subagent_id, 'work');
+            maybePulse(`task:${payload.task_id}`, 'work');
+            setActivity(payload.subagent_id, `Ejecutando: ${task.title || payload.task_id}${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 14000);
+            setActivity(`task:${payload.task_id}`, `Running${modelLabel ? ` · ${modelLabel}` : ''}`, 'work', 14000);
+            maybeBubble(payload.subagent_id, payload.task_id, 'working', 'work');
+            maybePacket(payload.subagent_id, payload.task_id, 'work');
+          }
+          needsRender = true;
+          break;
+        }
+        case 'task_artifact_submitted':
+          ensureTask({ id: payload.task_id, state: 'waiting_review' });
+          ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'waiting_review',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.task_id,
+          });
+          maybePulse(payload.subagent_id, 'review');
+          maybePulse('review-lane', 'review');
+          setActivity(payload.subagent_id, 'Artifact listo', 'review', 12000);
+          setActivity('review-lane', `Revisando ${payload.task_id}`, 'review', 12000);
+          setActivity(`task:${payload.task_id}`, 'Esperando review', 'review', 12000);
+          maybeBubble(payload.subagent_id, 'review-lane', 'artifact', 'review');
+          maybePacket(payload.subagent_id, 'review-lane', 'artifact');
+          needsRender = true;
+          break;
+        case 'task_reviewed':
+          ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'waiting_review',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.task_id,
+            last_review_score: payload.score,
+          });
+          maybePulse('review-lane', 'review');
+          maybePulse('supervisor', 'review');
+          setActivity('review-lane', `${payload.action || 'review'} · score ${Number(payload.score || 0).toFixed(2)}`, 'review', 12000);
+          setActivity('supervisor', `Decision review: ${payload.action || 'review'}`, 'review', 12000);
+          maybeBubble('review-lane', 'supervisor', payload.action || 'review', 'review');
+          maybePacket('review-lane', 'supervisor', 'review');
+          needsRender = true;
+          break;
+        case 'task_accepted':
+          ensureTask({ id: payload.task_id, state: 'accepted' });
+          ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: payload.ephemeral ? 'running' : 'idle',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.ephemeral ? payload.task_id : null,
+          });
+          maybePulse('review-lane', 'outbound');
+          maybePulse(`task:${payload.task_id}`, 'outbound');
+          maybePulse('integration', 'outbound');
+          setActivity(`task:${payload.task_id}`, 'Accepted', 'outbound', 12000);
+          setActivity('integration', `Aceptado: ${payload.task_id}`, 'outbound', 12000);
+          if (!payload.ephemeral) {
+            setActivity(payload.subagent_id, 'Libre', 'outbound', 7000);
+          }
+          maybeBubble('review-lane', `task:${payload.task_id}`, 'accepted', 'outbound');
+          maybePacket('review-lane', `task:${payload.task_id}`, 'accept');
+          needsRender = true;
+          break;
+        case 'task_rejected':
+          ensureTask({ id: payload.task_id, state: 'rejected' });
+          ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'failed',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.task_id,
+          });
+          maybePulse('review-lane', 'error');
+          maybePulse(`task:${payload.task_id}`, 'error');
+          setActivity(`task:${payload.task_id}`, 'Rejected', 'error', 12000);
+          setActivity(payload.subagent_id, 'Revision requerida', 'error', 12000);
+          maybeBubble('review-lane', `task:${payload.task_id}`, 'rejected', 'error');
+          maybePacket('review-lane', `task:${payload.task_id}`, 'error');
+          needsRender = true;
+          break;
+        case 'task_failed':
+          ensureTask({ id: payload.task_id, state: 'failed' });
+          ensureSubagent({
+            id: payload.subagent_id,
+            role: payload.role,
+            state: 'failed',
+            ephemeral: payload.ephemeral,
+            current_task_id: payload.task_id,
+            last_error: payload.error,
+          });
+          maybePulse(payload.subagent_id, 'error');
+          maybePulse('review-lane', 'error');
+          setActivity(`task:${payload.task_id}`, payload.error || 'Task failed', 'error', 12000);
+          setActivity(payload.subagent_id, payload.error || 'Task failed', 'error', 12000);
+          maybeBubble(payload.subagent_id, 'review-lane', payload.error || 'failed', 'error');
+          maybePacket(payload.subagent_id, 'review-lane', 'error');
+          needsRender = true;
+          break;
+        case 'team_settings_updated':
+          setConfigStatus('Runtime settings aplicados', 'ok');
+          break;
+        default:
+          break;
+      }
+      if (needsRender) {
+        renderGraph();
+      }
+    };
+
+    const applyFlowSnapshot = (snapshot) => {
+      debugLog('flow.snapshot.apply', {
+        team: snapshot?.team?.length || 0,
+        recentEvents: snapshot?.recent_events?.length || 0,
+      });
+      graphState.tasks.clear();
+      graphState.subagents.clear();
+      graphState.parallelBatch = [];
+      graphState.planId = null;
+      graphState.activities.clear();
+      (snapshot?.team || []).forEach((agent) => ensureSubagent(agent));
+      (snapshot?.recent_events || []).forEach((evt) => applyRuntimeEvent(evt, { replay: true }));
+      renderGraph();
+    };
+
+    const renderSkillsCatalog = () => {
+      skillsCatalogEl.innerHTML = '';
+      skillsCatalog.forEach((skill) => {
+        const card = document.createElement('article');
+        card.className = 'catalog-card';
+        card.innerHTML = `
+          <div class="catalog-head">
+            <strong>${escapeHtml(skill.name)}</strong>
+            <span class="catalog-badge">shared</span>
+          </div>
+          <span>${escapeHtml(skill.description || '')}</span>
+          <small>${escapeHtml((skill.tags || []).join(' · ') || 'sin tags')}</small>
+        `;
+        skillsCatalogEl.appendChild(card);
+      });
+    };
+
+    const populateConfigForm = () => {
+      const settings = runtimeConfig?.team;
+      if (!settings) return;
+      document.getElementById('cfg-team-size').value = settings.team_size;
+      document.getElementById('cfg-max-parallel').value = settings.max_parallel_tasks;
+      document.getElementById('cfg-subagent-mode').value = settings.subagent_mode;
+      document.getElementById('cfg-profile-path').value = settings.subagent_profile_path || '';
+      document.getElementById('cfg-review-interval').value = settings.supervisor_review_interval_ms;
+      document.getElementById('cfg-performance-policy').value = settings.performance_policy || 'balanced_fast';
+      document.getElementById('cfg-planner-aggressiveness').value = settings.planner_aggressiveness ?? 60;
+      document.getElementById('cfg-escalation-tier').value = settings.max_escalation_tier || 'standard';
+      document.getElementById('cfg-typing-delay').value = settings.typing_delay_ms ?? 800;
+      document.getElementById('cfg-review-loops').value = settings.max_review_loops_per_task;
+      document.getElementById('cfg-task-retries').value = settings.max_task_retries;
+      document.getElementById('cfg-plan-max-tasks').value = settings.plan_max_tasks;
+      document.getElementById('cfg-plan-max-depth').value = settings.plan_max_depth;
+      document.getElementById('cfg-max-ephemeral').value = settings.max_ephemeral_subagents;
+      document.getElementById('cfg-allow-ephemeral').checked = !!settings.allow_ephemeral_subagents;
+      document.getElementById('cfg-final-review').checked = !!settings.require_final_review;
+      document.getElementById('cfg-progress-updates').checked = !!settings.progress_updates_enabled;
+      document.getElementById('cfg-progress-threshold').value = settings.progress_update_threshold_ms;
+      document.getElementById('cfg-roleset').value = csvText(settings.subagent_roleset || []);
+    };
+
+    const collectConfigPayload = () => {
+      const base = structuredClone(runtimeConfig.team);
+      base.team_size = Number(document.getElementById('cfg-team-size').value);
+      base.max_parallel_tasks = Number(document.getElementById('cfg-max-parallel').value);
+      base.subagent_mode = document.getElementById('cfg-subagent-mode').value;
+      base.subagent_profile_path = document.getElementById('cfg-profile-path').value.trim() || null;
+      base.supervisor_review_interval_ms = Number(document.getElementById('cfg-review-interval').value);
+      base.performance_policy = document.getElementById('cfg-performance-policy').value;
+      base.planner_aggressiveness = Number(document.getElementById('cfg-planner-aggressiveness').value);
+      base.max_escalation_tier = document.getElementById('cfg-escalation-tier').value;
+      base.typing_delay_ms = Number(document.getElementById('cfg-typing-delay').value);
+      base.max_review_loops_per_task = Number(document.getElementById('cfg-review-loops').value);
+      base.max_task_retries = Number(document.getElementById('cfg-task-retries').value);
+      base.plan_max_tasks = Number(document.getElementById('cfg-plan-max-tasks').value);
+      base.plan_max_depth = Number(document.getElementById('cfg-plan-max-depth').value);
+      base.max_ephemeral_subagents = Number(document.getElementById('cfg-max-ephemeral').value);
+      base.allow_ephemeral_subagents = document.getElementById('cfg-allow-ephemeral').checked;
+      base.require_final_review = document.getElementById('cfg-final-review').checked;
+      base.progress_updates_enabled = document.getElementById('cfg-progress-updates').checked;
+      base.progress_update_threshold_ms = Number(document.getElementById('cfg-progress-threshold').value);
+      base.subagent_roleset = csvList(document.getElementById('cfg-roleset').value);
+      base.principal_skills = { allowed_skills: ['*'], denied_skills: [] };
+      base.role_specializations = {};
+      base.subagent_specializations = {};
+      return base;
+    };
+
+    configForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!runtimeConfig?.team) return;
+      setConfigStatus('Guardando...', 'pending');
+      try {
+        const payload = collectConfigPayload();
+        const response = await fetch('/api/operator/team-settings', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!result.ok) {
+          setConfigStatus(result.error || 'No se pudo guardar', 'error');
+          return;
+        }
+        runtimeConfig.team = result.settings;
+        updateResourceWidgets(result.resources, result.settings);
+        configuredTeamEl.textContent = result.settings.team_size;
+        effectiveParallelEl.textContent = result.effective_parallel_limit;
+        elasticCapEl.textContent = result.effective_ephemeral_capacity;
+        hostEffectiveEphemeralEl.textContent = result.effective_ephemeral_capacity;
+        setConfigStatus('Settings aplicados al runtime', 'ok');
+        await refreshState();
+        await loadConfig();
+      } catch (err) {
+        console.error(err);
+        setConfigStatus('Error guardando settings', 'error');
+      }
+    });
+
+    configRefreshBtn.addEventListener('click', async () => {
+      setConfigStatus('Recargando...', 'pending');
+      await loadConfig();
+      setConfigStatus('Configuración recargada', 'idle');
+    });
+
+    resetDataBtn.addEventListener('click', async () => {
+      if ((resetDataConfirmEl.value || '').trim() !== 'RESET') {
+        setConfigStatus('Escribe RESET para confirmar el borrado', 'error');
+        return;
+      }
+      if (!window.confirm('Esto borrará memoria, conversaciones, planes, tareas, reminders, eventos y cache. Continuar?')) {
+        return;
+      }
+      setConfigStatus('Reseteando data...', 'pending');
+      try {
+        const response = await fetch('/api/operator/reset-data', { method: 'POST' });
+        const result = await response.json();
+        if (!result.ok) {
+          setConfigStatus(result.error || 'No se pudo resetear', 'error');
+          return;
+        }
+        eventsEl.innerHTML = '';
+        messageLogEl.innerHTML = '';
+        graphState.tasks.clear();
+        graphState.parallelBatch = [];
+        graphState.planId = null;
+        graphState.subagents.clear();
+        graphState.activities.clear();
+        teamSnapshot = [];
+        resetDataConfirmEl.value = '';
+        setConfigStatus('Data reseteada', 'ok');
+        await refreshState();
+        await loadConfig();
+        renderGraph();
+      } catch (err) {
+        console.error(err);
+        setConfigStatus('Error reseteando data', 'error');
+      }
+    });
+
+    const loadConfig = async () => {
+      const config = await fetch('/api/config').then((r) => r.json());
+      debugLog('config.loaded', {
+        skillsCatalog: config.skills_catalog?.length || 0,
+        teamSize: config.team?.team_size,
+      });
+      runtimeConfig = config;
+      skillsCatalog = Array.isArray(config.skills_catalog) ? config.skills_catalog : [];
+      renderSkillsCatalog();
+      teamSnapshot = Array.isArray(config.team_subagents) ? config.team_subagents : teamSnapshot;
+      updateResourceWidgets(config.team_resources, config.team);
+      configuredTeamEl.textContent = config.team.team_size;
+      effectiveParallelEl.textContent = await fetch('/api/state').then((r) => r.json()).then((state) => state.effective_parallel_limit ?? config.team.max_parallel_tasks);
+      populateConfigForm();
+    };
+
+    const refreshState = async (reason = 'manual', mode = 'full') => {
+      if (refreshInFlight) {
+        debugLog('refresh.skipped_inflight', { reason, mode });
+        return;
+      }
+      refreshInFlight = true;
+      try {
+        const state = await fetch('/api/state').then((r) => r.json());
+        const stateSignature = stableSignature({
+          queue_depth: state.queue_depth,
+          active_channel: state.active_channel,
+          runtime_paused: state.runtime_paused,
+          effective_ephemeral_capacity: state.effective_ephemeral_capacity,
+          effective_parallel_limit: state.effective_parallel_limit,
+          resources: state.resources,
+        });
+        if (stateSignature !== lastStateSignature) {
+          lastStateSignature = stateSignature;
+          debugLog('state.refreshed', {
+            reason,
+            mode,
+            queueDepth: state.queue_depth,
+            activeChannel: state.active_channel,
+            paused: state.runtime_paused,
+          });
+          queueEl.textContent = state.queue_depth;
+          if (queueInlineEl) queueInlineEl.textContent = state.queue_depth;
+          stateEl.textContent = state.runtime_paused ? 'paused' : 'running';
+          if (activeChannelEl) activeChannelEl.textContent = state.active_channel || 'local';
+          if (elasticCapEl) elasticCapEl.textContent = state.effective_ephemeral_capacity ?? '-';
+          effectiveParallelEl.textContent = state.effective_parallel_limit ?? '-';
+          tsEl.textContent = new Date().toLocaleTimeString();
+          if (busEnabledEl) busEnabledEl.textContent = state.bus?.enabled ? 'yes' : 'no';
+          if (busOutboxPendingEl) busOutboxPendingEl.textContent = state.bus?.outbox?.pending ?? 0;
+          if (busOutboxPublishedEl) busOutboxPublishedEl.textContent = state.bus?.outbox?.published ?? 0;
+          if (busOutboxFailedEl) busOutboxFailedEl.textContent = state.bus?.outbox?.failed ?? 0;
+          if (busEventsPendingEl) busEventsPendingEl.textContent = state.bus?.events_pending?.pending ?? 0;
+          if (busMemoryPendingEl) busMemoryPendingEl.textContent = state.bus?.memory_pending?.pending ?? 0;
+          if (busJobsPendingEl) busJobsPendingEl.textContent = state.bus?.jobs_pending?.pending ?? 0;
+          if (busStreamPrefixEl) busStreamPrefixEl.textContent = state.bus?.stream_prefix || '-';
+          updateResourceWidgets(state.resources, runtimeConfig?.team || null);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      if (mode === 'full') {
+        try {
+          const teamPayload = await fetch('/api/team').then((r) => r.json());
+          const teamSignature = stableSignature({
+            team: teamPayload.team,
+            persistent: teamPayload.persistent_subagents,
+            ephemeral: teamPayload.ephemeral_subagents,
+            effective_ephemeral_capacity: teamPayload.effective_ephemeral_capacity,
+            resources: teamPayload.resources,
+          });
+          if (teamSignature !== lastTeamSignature) {
+            lastTeamSignature = teamSignature;
+            debugLog('team.refreshed', {
+              reason,
+              mode,
+              subagents: teamPayload.team?.length || 0,
+              persistent: teamPayload.persistent_subagents,
+              ephemeral: teamPayload.ephemeral_subagents,
+              effectiveParallel: teamPayload.settings?.max_parallel_tasks,
+            });
+            teamSnapshot = Array.isArray(teamPayload.team) ? teamPayload.team : [];
+            graphState.subagents.clear();
+            teamSnapshot.forEach((agent) => ensureSubagent(agent));
+            updateCounters(teamPayload);
+            updateResourceWidgets(teamPayload.resources, teamPayload.settings);
+            renderGraph();
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      refreshInFlight = false;
+    };
+
+    const scheduleRefresh = (reason = 'manual', mode = 'light', delayMs = 400) => {
+      if (mode === 'full') {
+        pendingRefreshMode = 'full';
+      } else if (pendingRefreshMode !== 'full') {
+        pendingRefreshMode = 'light';
+      }
+      if (refreshTimer) return;
+      refreshTimer = window.setTimeout(async () => {
+        const modeToRun = pendingRefreshMode;
+        refreshTimer = null;
+        pendingRefreshMode = 'light';
+        await refreshState(reason, modeToRun);
+      }, delayMs);
+    };
+
+    const preload = async () => {
+      try {
+        const flow = await fetch('/api/flow').then((r) => r.json());
+        debugLog('flow.preload.loaded', {
+          team: flow.team?.length || 0,
+          events: flow.recent_events?.length || 0,
+        });
+        const initial = flow.recent_events || [];
+        applyFlowSnapshot(flow);
+        initial.slice(-60).forEach((evt) => appendEvent(evt));
+        updateResourceWidgets(flow.resources, runtimeConfig?.team || null);
+      } catch (err) {
+        console.error(err);
+      }
+      await loadConfig();
+      await refreshState('preload', 'full');
+      renderGraph();
+    };
+
+    preload();
+    renderTurnStages();
+    setInterval(() => scheduleRefresh('interval', 'light', 0), 45000);
+    setInterval(() => scheduleRefresh('interval-team', 'full', 0), 180000);
+    window.addEventListener('resize', renderGraph);
+
+    const stream = new EventSource('/events/stream');
+    stream.addEventListener('runtime_event', (ev) => {
+      try {
+        const evt = JSON.parse(ev.data);
+        debugLog('sse.runtime_event', { id: evt.id, type: evt.event_type });
+        applyRuntimeEvent(evt, { replay: false });
+        if (!evt.id || !seenRuntimeEvents.has(`event-card:${evt.id}`)) {
+          if (evt.id) seenRuntimeEvents.add(`event-card:${evt.id}`);
+          appendEvent(evt);
+        }
+        const needsFullRefresh = [
+          'subagent_spawned',
+          'subagent_destroyed',
+          'team_settings_updated',
+        ].includes(evt.event_type);
+        if (needsFullRefresh) {
+          scheduleRefresh(`sse:${evt.event_type}`, 'full', 500);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+role: integrator
+model_route: openai/gpt-4.1-mini
+allowed_skills:
+  - memory.search
+  - agent.help
+prompt_overlay: |
+  Merge accepted artifacts into one coherent final response with clear structure.

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Conversation {{ conversation_id }}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23162044'/%3E%3Cpath d='M22 18h20v6H29v8h11v6H29v14h-7V18z' fill='%23f7fbff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body class="theme-pro">
+  <div class="dashboard dashboard-conversation-shell">
+    <header class="hero-header conversation-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Conversation detail</p>
+        <h1>Conversation {{ conversation_id }}</h1>
+        <p class="hero-description">Vista de inspección para comparar la entrada original con la respuesta final que produjo el orquestador.</p>
+        <div class="hero-summary">
+          <div class="hero-summary-card">
+            <span>Conversation</span>
+            <strong>#{{ conversation_id }}</strong>
+          </div>
+          <div class="hero-summary-card">
+            <span>Inbound chars</span>
+            <strong>{{ inbound_len }}</strong>
+          </div>
+          <div class="hero-summary-card">
+            <span>Final chars</span>
+            <strong>{{ final_answer_len }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="conversation-actions">
+        <a class="back-link" href="/dashboard">Volver al dashboard</a>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      <section class="tab-lead">
+        <div>
+          <p class="eyebrow">Trace review</p>
+          <h2 class="tab-lead-title">Inbound vs final answer</h2>
+          <p class="tab-lead-copy">Ideal para revisar calidad de respuesta, truncado y coherencia general sin abrir los eventos crudos.</p>
+        </div>
+      </section>
+
+      <section class="overview-grid conversation-grid">
+        <article class="card col-6 log-card">
+          <h2>Entrada / inbound</h2>
+          <pre class="payload">{{ inbound }}</pre>
+        </article>
+
+        <article class="card col-6 spotlight-card">
+          <h2>Respuesta final del orquestador</h2>
+          <pre class="payload">{{ final_answer }}</pre>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
