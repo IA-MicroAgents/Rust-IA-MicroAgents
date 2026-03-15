@@ -8,6 +8,7 @@ use crate::{
     config::AppConfig,
     config::BusConfig,
     errors::{AppError, AppResult},
+    memory::{BrainMemory, BrainWriteCandidate},
     scheduler::jobs::ReminderSendJob,
     storage::{
         cache::{CacheLayer, CacheScope},
@@ -292,6 +293,67 @@ impl Store {
         self.enqueue_bus_event(&envelope).await
     }
 
+    pub async fn save_or_merge_brain_candidates(
+        &self,
+        candidates: &[BrainWriteCandidate],
+    ) -> AppResult<()> {
+        self.backend
+            .save_or_merge_brain_candidates(candidates)
+            .await
+    }
+
+    pub async fn queue_brain_write(
+        &self,
+        trace_id: Option<&str>,
+        candidates: &[BrainWriteCandidate],
+    ) -> AppResult<()> {
+        if candidates.is_empty() {
+            return Ok(());
+        }
+        if !self.bus_enabled() {
+            return self.save_or_merge_brain_candidates(candidates).await;
+        }
+
+        let aggregate_id = candidates
+            .iter()
+            .find_map(|candidate| {
+                candidate
+                    .conversation_id
+                    .map(|conversation_id| format!("conversation:{conversation_id}"))
+            })
+            .or_else(|| {
+                candidates.iter().find_map(|candidate| {
+                    candidate
+                        .user_id
+                        .as_ref()
+                        .map(|user_id| format!("user:{user_id}"))
+                })
+            });
+        let conversation_id = candidates
+            .iter()
+            .find_map(|candidate| candidate.conversation_id);
+        let envelope = BusEventEnvelope {
+            id: uuid::Uuid::new_v4(),
+            event_kind: "memory.brain.write".to_string(),
+            stream_key: "memory".to_string(),
+            aggregate_id,
+            conversation_id,
+            trace_id: trace_id.map(ToString::to_string),
+            task_id: None,
+            subagent_id: None,
+            route_key: None,
+            resolved_model: None,
+            evidence_count: None,
+            reasoning_tier: None,
+            fallback_kind: None,
+            created_at: Utc::now(),
+            payload: serde_json::json!({
+                "candidates": candidates,
+            }),
+        };
+        self.enqueue_bus_event(&envelope).await
+    }
+
     pub async fn search_memory_docs(
         &self,
         conversation_id: Option<i64>,
@@ -312,6 +374,72 @@ impl Store {
                     .await
             })
             .await
+    }
+
+    pub async fn search_active_brain(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        query: &str,
+        conversation_limit: usize,
+        user_limit: usize,
+    ) -> AppResult<Vec<BrainMemory>> {
+        self.backend
+            .search_active_brain(
+                conversation_id,
+                user_id,
+                query,
+                conversation_limit,
+                user_limit,
+            )
+            .await
+    }
+
+    pub async fn recent_active_brain(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        conversation_limit: usize,
+        user_limit: usize,
+    ) -> AppResult<Vec<BrainMemory>> {
+        self.backend
+            .recent_active_brain(conversation_id, user_id, conversation_limit, user_limit)
+            .await
+    }
+
+    pub async fn search_memory(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        query: &str,
+        limit: usize,
+    ) -> AppResult<Vec<String>> {
+        let brain_limit = limit.min(4);
+        let brain = self
+            .search_active_brain(conversation_id, user_id, query, brain_limit, brain_limit)
+            .await
+            .unwrap_or_default();
+        let docs = self
+            .search_memory_docs(conversation_id, query, limit)
+            .await?;
+        let mut seen = std::collections::HashSet::new();
+        let mut merged = Vec::new();
+
+        for item in brain
+            .into_iter()
+            .map(|memory| memory.render_for_search_result())
+            .chain(docs.into_iter())
+        {
+            if item.trim().is_empty() || !seen.insert(item.clone()) {
+                continue;
+            }
+            merged.push(item);
+            if merged.len() >= limit {
+                break;
+            }
+        }
+
+        Ok(merged)
     }
 
     pub async fn conversation_context_snapshot(

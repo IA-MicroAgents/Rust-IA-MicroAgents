@@ -1,6 +1,7 @@
 use crate::{
     identity::compiler::SystemIdentity,
     llm::{response_types::DecisionRoute, ChatMessage},
+    memory::BrainMemory,
     orchestrator::context::TurnContext,
     skills::SkillDefinition,
     storage::ConversationTurn,
@@ -11,6 +12,7 @@ pub fn compile_classifier_prompt(
     user_text: &str,
     recent_turns: &[ConversationTurn],
     latest_summary: Option<&str>,
+    brain_memories: &[BrainMemory],
 ) -> Vec<ChatMessage> {
     let turns_block = recent_turns
         .iter()
@@ -23,8 +25,9 @@ pub fn compile_classifier_prompt(
         .collect::<Vec<_>>()
         .join("\n");
 
+    let brain_block = render_brain_memories(brain_memories);
     let system = format!(
-        "{}\n\nYou are the Ferrum route classifier. Return STRICT JSON only with fields: route, assistant_reply, tool_calls, memory_writes, should_summarize, confidence, safe_to_send.\
+        "{}\n\nYou are the AI MicroAgents route classifier. Return STRICT JSON only with fields: route, assistant_reply, tool_calls, memory_writes, should_summarize, confidence, safe_to_send.\
 \nassistant_reply must be an empty string. tool_calls and memory_writes must be empty arrays. should_summarize=false. safe_to_send=true unless the request is unsafe.\
 \nChoose only one route: direct_reply, tool_use, plan_then_act, ignore, ask_clarification.\
 \nPrefer plan_then_act for decomposable or delegable work. Prefer tool_use when external tools are clearly required. Prefer ask_clarification only when the user intent is materially underspecified after using the recent conversation context.\
@@ -34,14 +37,15 @@ pub fn compile_classifier_prompt(
     );
 
     let user = format!(
-        "User message:\n{}\n\nRecent turns:\n{}\n\nLatest summary:\n{}",
+        "User message:\n{}\n\nRecent turns:\n{}\n\nLatest summary:\n{}\n\nRelevant brain memories:\n{}",
         user_text,
         if turns_block.is_empty() {
             "(none)".to_string()
         } else {
             turns_block
         },
-        latest_summary.unwrap_or("(none)")
+        latest_summary.unwrap_or("(none)"),
+        brain_block
     );
 
     vec![
@@ -64,6 +68,7 @@ pub fn compile_decision_prompt(
         .collect::<Vec<_>>()
         .join("\n");
     let memories_block = context.memories.join("\n- ");
+    let brain_block = context.brain_memories_block(8);
 
     let summary_block = context
         .latest_summary
@@ -86,7 +91,7 @@ pub fn compile_decision_prompt(
     );
 
     let user = format!(
-        "User message:\n{}\n\nRecent turns:\n{}\n\nLatest summary:\n{}\n\nRelevant memories:\n- {}\n\nConversation working set:\n{}\n\nEvidence bundle:\n{}",
+        "User message:\n{}\n\nRecent turns:\n{}\n\nLatest summary:\n{}\n\nRelevant brain memories:\n- {}\n\nRelevant memories:\n- {}\n\nConversation working set:\n{}\n\nEvidence bundle:\n{}",
         user_text,
         if turns_block.is_empty() {
             "(none)".to_string()
@@ -94,6 +99,11 @@ pub fn compile_decision_prompt(
             turns_block
         },
         summary_block,
+        if brain_block.is_empty() {
+            "(none)".to_string()
+        } else {
+            brain_block
+        },
         if memories_block.is_empty() {
             "(none)".to_string()
         } else {
@@ -125,6 +135,7 @@ pub fn compile_planning_prompt(
         .collect::<Vec<_>>()
         .join("\n");
     let memories_block = context.memories.join("\n- ");
+    let brain_block = context.brain_memories_block(8);
     let summary_block = context
         .latest_summary
         .clone()
@@ -142,7 +153,7 @@ pub fn compile_planning_prompt(
     };
 
     let system = format!(
-        "{}\n\nYou are the Ferrum supervisor planner. Always try to decompose non-trivial work into the smallest useful tasks that can run in parallel.\
+        "{}\n\nYou are the AI MicroAgents supervisor planner. Always try to decompose non-trivial work into the smallest useful tasks that can run in parallel.\
 \nReturn STRICT JSON only with fields: goal, assumptions, risks, tasks, parallelizable_groups.\
 \nEach task must include: id, title, description, dependencies, acceptance_criteria, candidate_role, model_route, expected_artifact, estimated_cost_usd, estimated_ms, requires_live_data, evidence_inputs, analysis_track.\
 \nDo NOT create the final integration task; runtime adds that itself.\
@@ -157,7 +168,7 @@ pub fn compile_planning_prompt(
     );
 
     let user = format!(
-        "User message:\n{}\n\nRecent turns:\n{}\n\nLatest summary:\n{}\n\nRelevant memories:\n- {}\n\nConversation working set:\n{}\n\nEvidence bundle:\n{}\n\nCandidate skills:\n{}",
+        "User message:\n{}\n\nRecent turns:\n{}\n\nLatest summary:\n{}\n\nRelevant brain memories:\n- {}\n\nRelevant memories:\n- {}\n\nConversation working set:\n{}\n\nEvidence bundle:\n{}\n\nCandidate skills:\n{}",
         user_text,
         if turns_block.is_empty() {
             "(none)".to_string()
@@ -165,6 +176,11 @@ pub fn compile_planning_prompt(
             turns_block
         },
         summary_block,
+        if brain_block.is_empty() {
+            "(none)".to_string()
+        } else {
+            brain_block
+        },
         if memories_block.is_empty() {
             "(none)".to_string()
         } else {
@@ -185,7 +201,9 @@ pub fn compile_final_answer_prompt(
     identity: &SystemIdentity,
     user_text: &str,
     tool_results_json: &str,
+    brain_memories: &[BrainMemory],
 ) -> Vec<ChatMessage> {
+    let brain_block = render_brain_memories(brain_memories);
     vec![
         ChatMessage::text(
             "system",
@@ -197,8 +215,8 @@ pub fn compile_final_answer_prompt(
         ChatMessage::text(
             "user",
             format!(
-                "Original user message:\n{}\n\nTool results JSON:\n{}\n\nProduce only the assistant reply text.",
-                user_text, tool_results_json
+                "Original user message:\n{}\n\nRelevant brain memories:\n{}\n\nTool results JSON:\n{}\n\nProduce only the assistant reply text.",
+                user_text, brain_block, tool_results_json
             ),
         ),
     ]
@@ -209,6 +227,7 @@ pub fn compile_fast_reply_prompt(
     route: &DecisionRoute,
     user_text: &str,
     recent_turns: &[ConversationTurn],
+    brain_memories: &[BrainMemory],
 ) -> Vec<ChatMessage> {
     let turns_block = recent_turns
         .iter()
@@ -220,6 +239,7 @@ pub fn compile_fast_reply_prompt(
         .map(|turn| format!("{}: {}", turn.role, turn.content))
         .collect::<Vec<_>>()
         .join("\n");
+    let brain_block = render_brain_memories(brain_memories);
     let route_instruction = match route {
         DecisionRoute::AskClarification => {
             "Ask one concise clarification question that unblocks the next step."
@@ -240,23 +260,36 @@ pub fn compile_fast_reply_prompt(
         ChatMessage::text(
             "system",
             format!(
-                "{}\n\nYou are Ferrum replying on Telegram. {} Resolve short follow-ups and corrections using the recent turns before asking for clarification. Reply in the user's language; if unclear, prefer the identity locale. Return plain text only.",
+                "{}\n\nYou are AI MicroAgents replying on Telegram. {} Resolve short follow-ups and corrections using the recent turns before asking for clarification. Reply in the user's language; if unclear, prefer the identity locale. Return plain text only.",
                 identity.compiled_system_prompt, route_instruction
             ),
         ),
         ChatMessage::text(
             "user",
             format!(
-                "User message:\n{}\n\nRecent turns:\n{}",
+                "User message:\n{}\n\nRecent turns:\n{}\n\nRelevant brain memories:\n{}",
                 user_text,
                 if turns_block.is_empty() {
                     "(none)".to_string()
                 } else {
                     turns_block
-                }
+                },
+                brain_block
             ),
         ),
     ]
+}
+
+fn render_brain_memories(memories: &[BrainMemory]) -> String {
+    if memories.is_empty() {
+        return "(none)".to_string();
+    }
+
+    memories
+        .iter()
+        .map(|memory| format!("- {}", memory.render_for_prompt()))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn render_skills(skills: &[SkillDefinition]) -> String {
@@ -303,8 +336,8 @@ mod tests {
     fn prompt_compiler_contains_json_contract() {
         let identity = SystemIdentity {
             frontmatter: IdentityFrontmatter {
-                id: "ferrum".to_string(),
-                display_name: "Ferrum".to_string(),
+                id: "ai-microagents".to_string(),
+                display_name: "AI MicroAgents".to_string(),
                 description: "test".to_string(),
                 locale: "en-US".to_string(),
                 timezone: "UTC".to_string(),
@@ -337,6 +370,11 @@ mod tests {
                     save_facts: true,
                     save_summaries: true,
                     summarize_every_n_turns: 4,
+                    brain_enabled: true,
+                    precheck_each_turn: true,
+                    auto_write_mode: "aggressive".to_string(),
+                    conversation_limit: 4,
+                    user_limit: 4,
                 },
                 permissions: IdentityPermissions {
                     allowed_skills: vec!["*".to_string()],
@@ -370,6 +408,7 @@ mod tests {
             trace_id: "trace-test".to_string(),
             recent_turns: vec![],
             latest_summary: None,
+            brain_memories: vec![],
             memories: vec![],
             working_set: crate::usecase::ConversationWorkingSet::default(),
             current_evidence: None,
@@ -394,8 +433,8 @@ mod tests {
     fn planning_prompt_contains_route_constraints() {
         let identity = SystemIdentity {
             frontmatter: IdentityFrontmatter {
-                id: "ferrum".to_string(),
-                display_name: "Ferrum".to_string(),
+                id: "ai-microagents".to_string(),
+                display_name: "AI MicroAgents".to_string(),
                 description: "test".to_string(),
                 locale: "en-US".to_string(),
                 timezone: "UTC".to_string(),
@@ -428,6 +467,11 @@ mod tests {
                     save_facts: true,
                     save_summaries: true,
                     summarize_every_n_turns: 4,
+                    brain_enabled: true,
+                    precheck_each_turn: true,
+                    auto_write_mode: "aggressive".to_string(),
+                    conversation_limit: 4,
+                    user_limit: 4,
                 },
                 permissions: IdentityPermissions {
                     allowed_skills: vec!["*".to_string()],
@@ -460,6 +504,7 @@ mod tests {
             trace_id: "trace-test".to_string(),
             recent_turns: vec![],
             latest_summary: None,
+            brain_memories: vec![],
             memories: vec![],
             working_set: crate::usecase::ConversationWorkingSet::default(),
             current_evidence: None,

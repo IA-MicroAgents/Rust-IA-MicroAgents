@@ -1,0 +1,381 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - paragraph [ref=e7]: AI MicroAgents Runtime
+        - heading "Mission Control" [level=1] [ref=e8]
+        - paragraph [ref=e9]: Panel operativo para supervisar capacidad, eventos, flujo de ejecución y configuración sin una capa visual custom encima.
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - status:
+            - text: State
+            - strong [ref=e12]: running
+        - generic [ref=e13]:
+          - status:
+            - text: Identity
+            - strong [ref=e14]: ai-microagents.default
+        - generic [ref=e15]:
+          - status:
+            - text: Channel
+            - strong [ref=e16]: telegram
+        - generic [ref=e17]:
+          - status:
+            - text: Queue
+            - strong [ref=e18]: "0"
+        - generic [ref=e19]:
+          - status:
+            - text: Updated
+            - strong [ref=e20]: "-"
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic: Persistent Pool
+        - generic [ref=e26]:
+          - strong [ref=e27]: "4"
+          - generic [ref=e28]: Subagentes base del supervisor.
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic: Configured Team
+        - generic [ref=e32]:
+          - strong [ref=e33]: "4"
+          - generic [ref=e34]: Capacidad persistente configurada.
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic: Parallel Limit
+        - generic [ref=e38]:
+          - strong [ref=e39]: "4"
+          - generic [ref=e40]: Tope efectivo de ejecución paralela.
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic: Elastic Cap
+        - generic [ref=e44]:
+          - strong [ref=e45]: "-"
+          - generic [ref=e46]: Burst efímero calculado por recursos.
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - generic: Estimated Cost
+        - generic [ref=e50]:
+          - strong [ref=e51]: $0
+          - generic [ref=e52]: Costo acumulado visible del runtime.
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - generic: Storage Stack
+        - generic [ref=e56]:
+          - strong [ref=e57]: postgres
+          - generic [ref=e58]:
+            - text: Cache
+            - strong [ref=e59]: redis
+  - navigation "Dashboard views" [ref=e60]:
+    - button "Overview" [ref=e62] [cursor=pointer]:
+      - generic [ref=e63]: Overview
+    - button "Flow" [ref=e65] [cursor=pointer]:
+      - generic [ref=e66]: Flow
+    - button "Events" [ref=e68] [cursor=pointer]:
+      - generic [ref=e69]: Events
+    - button "Config" [ref=e71] [cursor=pointer]:
+      - generic [ref=e72]: Config
+  - generic [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic: Elastic Burst
+        - generic [ref=e78]:
+          - strong [ref=e79]: "0"
+          - generic [ref=e80]: Subagentes efímeros vivos.
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic: Queue
+        - generic [ref=e84]:
+          - strong [ref=e85]: "0"
+          - generic [ref=e86]: Eventos pendientes en la cola.
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - generic: Parallelism
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - text: Active tasks
+            - strong [ref=e92]: "0"
+          - generic [ref=e93]:
+            - text: Current batch
+            - strong [ref=e94]: "0"
+          - generic [ref=e95]:
+            - text: Skills
+            - strong [ref=e96]: "13"
+    - generic [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic: Host Resources
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - text: CPU cores
+            - strong [ref=e103]: "-"
+          - generic [ref=e104]:
+            - text: CPU usage
+            - strong [ref=e105]: "-"
+          - generic [ref=e106]:
+            - text: Memory pressure
+            - strong [ref=e107]: "-"
+          - generic [ref=e108]:
+            - text: Free memory
+            - strong [ref=e109]: "-"
+      - generic [ref=e110]:
+        - generic [ref=e111]:
+          - generic: Adaptive Burst
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - text: Configured ephemeral cap
+            - strong [ref=e115]: "-"
+          - generic [ref=e116]:
+            - text: Effective ephemeral cap
+            - strong [ref=e117]: "-"
+          - generic [ref=e118]:
+            - text: Planner max tasks
+            - strong [ref=e119]: "-"
+          - generic [ref=e120]:
+            - text: Plan max depth
+            - strong [ref=e121]: "-"
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic: Redis Bus
+        - generic [ref=e125]:
+          - generic [ref=e126]:
+            - text: Enabled
+            - strong [ref=e127]: "-"
+          - generic [ref=e128]:
+            - text: Outbox pending
+            - strong [ref=e129]: "-"
+          - generic [ref=e130]:
+            - text: Outbox published
+            - strong [ref=e131]: "-"
+          - generic [ref=e132]:
+            - text: Outbox retries
+            - strong [ref=e133]: "-"
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic: Stream Lag
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - text: Events pending
+            - strong [ref=e139]: "-"
+          - generic [ref=e140]:
+            - text: Memory pending
+            - strong [ref=e141]: "-"
+          - generic [ref=e142]:
+            - text: Jobs pending
+            - strong [ref=e143]: "-"
+          - generic [ref=e144]:
+            - text: Prefix
+            - strong [ref=e145]: "-"
+    - generic [ref=e146]:
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - generic [ref=e150]: Telegram
+          - heading "Canal activo" [level=2] [ref=e151]
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - status:
+              - text: Skills
+              - strong [ref=e154]: "13"
+          - generic [ref=e155]:
+            - status:
+              - text: Telegram
+              - strong [ref=e156]: enabled
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - paragraph [ref=e160]: Telegram está corriendo por long polling oficial. El panel consume snapshots y eventos reales del runtime.
+          - paragraph [ref=e161]: "@FerrumAgentBot"
+        - generic [ref=e162]:
+          - paragraph [ref=e163]: El supervisor recibe el chat desde Telegram, decide si responder directo o abrir plan, y crea burst workers efímeros solo si los recursos del host lo permiten.
+          - list [ref=e164]:
+            - listitem [ref=e165]:
+              - text: "Estado:"
+              - strong [ref=e166]: enabled
+            - listitem [ref=e167]:
+              - text: "Username:"
+              - strong [ref=e168]: "@FerrumAgentBot"
+            - listitem [ref=e169]:
+              - text: "Workers efímeros:"
+              - strong [ref=e170]: nacen y mueren según carga real + configuración
+          - link "Abrir bot en Telegram" [ref=e171] [cursor=pointer]:
+            - /url: https://t.me/FerrumAgentBot
+  - generic [ref=e173]:
+    - generic [ref=e175]:
+      - generic [ref=e176]:
+        - generic [ref=e177]: Execution Graph
+        - heading "Live orchestration flow" [level=2] [ref=e178]
+        - paragraph [ref=e179]: Telegram, supervisor, workers persistentes y burst efímero en tiempo real.
+      - generic [ref=e180]:
+        - generic [ref=e181]:
+          - status:
+            - text: Persistent
+            - strong [ref=e182]: "4"
+        - generic [ref=e183]:
+          - status:
+            - text: Ephemeral
+            - strong [ref=e184]: "0"
+        - generic [ref=e185]:
+          - status:
+            - text: Parallel
+            - strong [ref=e186]: "0"
+        - generic [ref=e187]:
+          - status:
+            - text: CPU
+            - strong [ref=e188]: "-"
+        - generic [ref=e189]:
+          - status:
+            - text: Mem
+            - strong [ref=e190]: "-"
+    - generic [ref=e192]:
+      - generic [ref=e193]:
+        - generic [ref=e194]:
+          - status: Ingest · idle
+        - generic [ref=e195]:
+          - status: Context · idle
+        - generic [ref=e196]:
+          - status: Classify · idle
+        - generic [ref=e197]:
+          - status: Plan · idle
+        - generic [ref=e198]:
+          - status: Execute · idle
+        - generic [ref=e199]:
+          - status: Integrate · idle
+        - generic [ref=e200]:
+          - status: Deliver · idle
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - status: Telegram
+        - generic [ref=e206]:
+          - status: Supervisor
+        - generic [ref=e207]:
+          - status: Persistent worker
+        - generic [ref=e208]:
+          - status: Ephemeral worker
+        - generic [ref=e209]:
+          - status: Review
+        - generic [ref=e210]:
+          - status: Integration
+        - generic [ref=e211]:
+          - status: Task
+  - generic [ref=e213]:
+    - generic [ref=e216]:
+      - generic [ref=e217]: Messages
+      - generic [ref=e218]: Solo mensajes entrantes y salientes del canal.
+    - generic [ref=e222]:
+      - generic [ref=e223]: Runtime Events
+      - generic [ref=e224]: Plan, workers, retries, review, integración y delivery.
+  - generic [ref=e226]:
+    - generic [ref=e227]:
+      - generic [ref=e229]:
+        - generic [ref=e230]:
+          - generic [ref=e231]: Control Plane
+          - heading "Runtime configuration" [level=2] [ref=e232]
+          - paragraph [ref=e233]: Capacidad, política y burst del team sin skins ni overrides visuales propios.
+        - generic [ref=e234]:
+          - status: Sin cambios
+      - generic [ref=e236]:
+        - generic [ref=e237]:
+          - generic [ref=e238]:
+            - generic [ref=e240]: Team size
+            - spinbutton "Team size" [ref=e242]
+          - generic [ref=e243]:
+            - generic [ref=e245]: Max parallel tasks
+            - spinbutton "Max parallel tasks" [ref=e247]
+          - generic [ref=e249]:
+            - generic [ref=e251]: Subagent mode
+            - generic [ref=e253]:
+              - generic [ref=e254] [cursor=pointer]:
+                - combobox "Subagent mode" [ref=e255]
+                - textbox [ref=e256]
+                - img [ref=e259]
+              - generic:
+                - generic: generalist
+                - generic: specialist
+          - generic [ref=e261]:
+            - generic [ref=e263]: Profile path
+            - textbox "Profile path" [ref=e265]:
+              - /placeholder: subagents
+          - generic [ref=e266]:
+            - generic [ref=e268]: Review interval (ms)
+            - spinbutton "Review interval (ms)" [ref=e270]
+          - generic [ref=e272]:
+            - generic [ref=e274]: Performance policy
+            - generic [ref=e276]:
+              - generic [ref=e277] [cursor=pointer]:
+                - combobox "Performance policy" [ref=e278]
+                - textbox [ref=e279]
+                - img [ref=e282]
+              - generic:
+                - generic: fast
+                - generic: balanced_fast
+                - generic: max_quality
+          - generic [ref=e284]:
+            - generic [ref=e286]: Planner aggressiveness
+            - spinbutton "Planner aggressiveness" [ref=e288]
+          - generic [ref=e290]:
+            - generic [ref=e292]: Max escalation tier
+            - generic [ref=e294]:
+              - generic [ref=e295] [cursor=pointer]:
+                - combobox "Max escalation tier" [ref=e296]
+                - textbox [ref=e297]
+                - img [ref=e300]
+              - generic:
+                - generic: conservative
+                - generic: standard
+                - generic: aggressive
+          - generic [ref=e302]:
+            - generic [ref=e304]: Typing delay (ms)
+            - spinbutton "Typing delay (ms)" [ref=e306]
+          - generic [ref=e307]:
+            - generic [ref=e309]: Review loops per task
+            - spinbutton "Review loops per task" [ref=e311]
+          - generic [ref=e312]:
+            - generic [ref=e314]: Task retries
+            - spinbutton "Task retries" [ref=e316]
+          - generic [ref=e317]:
+            - generic [ref=e319]: Plan max tasks
+            - spinbutton "Plan max tasks" [ref=e321]
+          - generic [ref=e322]:
+            - generic [ref=e324]: Plan max depth
+            - spinbutton "Plan max depth" [ref=e326]
+          - generic [ref=e327]:
+            - generic [ref=e329]: Max ephemeral subagents
+            - spinbutton "Max ephemeral subagents" [ref=e331]
+          - generic [ref=e332]:
+            - generic [ref=e334]: Progress threshold (ms)
+            - spinbutton "Progress threshold (ms)" [ref=e336]
+        - generic [ref=e337]:
+          - generic [ref=e339] [cursor=pointer]:
+            - generic [ref=e340]:
+              - checkbox "Allow ephemeral subagents"
+            - generic [ref=e341]: Allow ephemeral subagents
+          - generic [ref=e343] [cursor=pointer]:
+            - generic [ref=e344]:
+              - checkbox "Require final review"
+            - generic [ref=e345]: Require final review
+          - generic [ref=e347] [cursor=pointer]:
+            - generic [ref=e348]:
+              - checkbox "Progress updates"
+            - generic [ref=e349]: Progress updates
+        - generic [ref=e350]:
+          - generic [ref=e352]: Roleset
+          - textbox "Roleset" [ref=e354]:
+            - /placeholder: researcher,implementer,verifier,integrator
+        - generic [ref=e355]:
+          - button "Guardar runtime settings" [ref=e357] [cursor=pointer]:
+            - generic [ref=e358]: Guardar runtime settings
+          - button "Recargar desde runtime" [ref=e360] [cursor=pointer]:
+            - generic [ref=e361]: Recargar desde runtime
+    - generic [ref=e364]:
+      - generic [ref=e365]: Shared Skills Catalog
+      - generic [ref=e366]: Todos los agentes y subagentes heredan este catálogo. Aquí solo inspeccionas qué capacidades tiene disponible AI MicroAgents.
+    - generic [ref=e368]:
+      - generic [ref=e370]:
+        - generic [ref=e371]: Danger Zone
+        - generic [ref=e372]: "Esto elimina memoria conversacional y estado runtime en Postgres y Redis. No toca `IDENTITY.md`, skills ni snapshots de configuración."
+      - generic [ref=e374]:
+        - generic [ref=e375]:
+          - generic [ref=e377]: Escribe RESET para confirmar
+          - textbox "Escribe RESET para confirmar" [ref=e379]:
+            - /placeholder: RESET
+        - button "Resetear data" [ref=e382] [cursor=pointer]:
+          - generic [ref=e383]: Resetear data

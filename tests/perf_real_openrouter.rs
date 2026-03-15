@@ -2,7 +2,7 @@ mod support;
 
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
-use ferrum::{
+use ai_microagents::{
     channel::{telegram::TelegramClient, InboundKind, NormalizedInboundEvent},
     config::AppConfig,
     identity::IdentityManager,
@@ -58,7 +58,7 @@ async fn measure_real_openrouter_with_mock_telegram() {
     cfg.telegram.enabled = true;
     cfg.telegram.base_url = telegram_server.uri();
     cfg.telegram.bot_token = "test-token".to_string();
-    cfg.telegram.bot_username = "FerrumAgentBot".to_string();
+    cfg.telegram.bot_username = "AIMicroAgentsBot".to_string();
     cfg.telegram.webhook_enabled = false;
     cfg.dashboard.enable_dashboard = false;
 

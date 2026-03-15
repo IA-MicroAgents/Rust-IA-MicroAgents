@@ -5,12 +5,7 @@ use std::sync::{
     Arc,
 };
 
-use async_trait::async_trait;
-use axum::{
-    body::Body,
-    http::{Request, StatusCode},
-};
-use ferrum::{
+use ai_microagents::{
     app::runtime::SharedAppState,
     channel::telegram::TelegramClient,
     config::{
@@ -28,6 +23,11 @@ use ferrum::{
     team::{config::SubagentMode, supervisor::SupervisorControls, TeamConfig, TeamManager},
     telemetry::event_bus::EventBus,
 };
+use async_trait::async_trait;
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
 use serde_json::json;
 use tokio::sync::mpsc;
 use tower::ServiceExt;
@@ -39,7 +39,7 @@ struct StubProvider;
 impl LlmProvider for StubProvider {
     async fn validate_models(
         &self,
-        _routes: &ferrum::identity::schema::ModelRoutes,
+        _routes: &ai_microagents::identity::schema::ModelRoutes,
     ) -> ProviderResult<Vec<ModelCapabilities>> {
         Ok(vec![])
     }
@@ -96,7 +96,7 @@ async fn dashboard_sse_works_with_token() {
             Request::builder()
                 .method("GET")
                 .uri("/events/stream")
-                .header("x-ferrum-dashboard-token", "secret")
+                .header("x-ai-microagents-dashboard-token", "secret")
                 .body(Body::empty())
                 .expect("request"),
         )
@@ -113,7 +113,10 @@ async fn dashboard_sse_works_with_token() {
 }
 
 async fn build_state(auth_token: &str) -> SharedAppState {
-    let base = std::env::temp_dir().join(format!("ferrum-dashboard-test-{}", uuid::Uuid::new_v4()));
+    let base = std::env::temp_dir().join(format!(
+        "ai-microagents-dashboard-test-{}",
+        uuid::Uuid::new_v4()
+    ));
     std::fs::create_dir_all(&base).expect("base dir");
     let identity_path = base.join("IDENTITY.md");
     let skills_dir = base.join("skills");
@@ -129,9 +132,9 @@ async fn build_state(auth_token: &str) -> SharedAppState {
         cache: backend.cache.clone(),
         identity_path: identity_path.clone(),
         skills_dir: skills_dir.clone(),
-        bus: ferrum::config::BusConfig {
+        bus: ai_microagents::config::BusConfig {
             enabled: true,
-            stream_prefix: "ferrum-test".to_string(),
+            stream_prefix: "ai-microagents-test".to_string(),
             stream_maxlen: 2000,
             outbox_publish_batch: 32,
             outbox_poll_ms: 200,
@@ -187,9 +190,9 @@ async fn build_state(auth_token: &str) -> SharedAppState {
             max_task_retries: 2,
             plan_max_tasks: 8,
             plan_max_depth: 3,
-            performance_policy: ferrum::team::config::PerformancePolicy::BalancedFast,
+            performance_policy: ai_microagents::team::config::PerformancePolicy::BalancedFast,
             planner_aggressiveness: 60,
-            max_escalation_tier: ferrum::team::config::EscalationTier::Standard,
+            max_escalation_tier: ai_microagents::team::config::EscalationTier::Standard,
             typing_delay_ms: 800,
             require_final_review: true,
             progress_updates_enabled: false,
@@ -257,19 +260,19 @@ async fn build_state(auth_token: &str) -> SharedAppState {
 
 fn write_identity(path: &std::path::Path) {
     let content = r#"---
-id: ferrum-test
-display_name: Ferrum Test
+id: ai-microagents-test
+display_name: AI MicroAgents Test
 description: Test identity
 locale: en-US
 timezone: UTC
 model_routes:
-  fast: model-fast
-  reasoning: model-reasoning
-  tool_use: model-tools
-  vision: model-vision
-  reviewer: model-reviewer
-  planner: model-planner
-  fallback: [model-fast]
+  fast: openrouter/free
+  reasoning: openrouter/free
+  tool_use: openrouter/free
+  vision: openrouter/free
+  reviewer: openrouter/free
+  planner: openrouter/free
+  fallback: [openrouter/free]
 budgets:
   max_steps: 4
   max_turn_cost_usd: 1.0

@@ -26,6 +26,58 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai-microagents"
+version = "0.1.0"
+dependencies = [
+ "apalis",
+ "apalis-redis",
+ "askama",
+ "async-trait",
+ "axum",
+ "base64",
+ "chrono",
+ "clap",
+ "deadpool-postgres",
+ "dotenvy",
+ "futures",
+ "http-body-util",
+ "humantime",
+ "hyper",
+ "jsonschema",
+ "metrics",
+ "metrics-exporter-prometheus",
+ "notify",
+ "once_cell",
+ "parking_lot",
+ "petgraph",
+ "redis 0.32.7",
+ "regex",
+ "reqwest 0.13.2",
+ "reqwest-middleware",
+ "reqwest-retry",
+ "schemars 1.2.1",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "sysinfo",
+ "teloxide",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-postgres",
+ "tokio-stream",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "walkdir",
+ "wiremock",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -878,58 +930,6 @@ name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
-
-[[package]]
-name = "ferrum"
-version = "0.1.0"
-dependencies = [
- "apalis",
- "apalis-redis",
- "askama",
- "async-trait",
- "axum",
- "base64",
- "chrono",
- "clap",
- "deadpool-postgres",
- "dotenvy",
- "futures",
- "http-body-util",
- "humantime",
- "hyper",
- "jsonschema",
- "metrics",
- "metrics-exporter-prometheus",
- "notify",
- "once_cell",
- "parking_lot",
- "petgraph",
- "redis 0.32.7",
- "regex",
- "reqwest 0.13.2",
- "reqwest-middleware",
- "reqwest-retry",
- "schemars 1.2.1",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "sysinfo",
- "teloxide",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tokio-postgres",
- "tokio-stream",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "uuid",
- "walkdir",
- "wiremock",
-]
 
 [[package]]
 name = "find-msvc-tools"

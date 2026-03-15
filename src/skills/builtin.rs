@@ -17,7 +17,7 @@ pub async fn execute_builtin(
 ) -> AppResult<Value> {
     match skill_name {
         "memory.write" => memory_write(input, store, conversation_id).await,
-        "memory.search" => memory_search(input, store, conversation_id).await,
+        "memory.search" => memory_search(input, store, conversation_id, user_id).await,
         "reminders.create" => reminders_create(input, store, conversation_id, user_id).await,
         "reminders.list" => reminders_list(input, store, user_id).await,
         "agent.status" => Ok(json!({
@@ -65,6 +65,7 @@ async fn memory_search(
     input: &Value,
     store: &Store,
     conversation_id: Option<i64>,
+    user_id: &str,
 ) -> AppResult<Value> {
     let query = input
         .get("query")
@@ -72,7 +73,7 @@ async fn memory_search(
         .ok_or_else(|| AppError::Validation("memory.search requires 'query'".to_string()))?;
     let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(5) as usize;
     let results = store
-        .search_memory_docs(conversation_id, query, limit)
+        .search_memory(conversation_id, Some(user_id), query, limit)
         .await?;
     Ok(json!({"results": results}))
 }

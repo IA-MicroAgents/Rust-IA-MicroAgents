@@ -321,7 +321,7 @@ impl LlmProvider for OpenRouterClient {
             let content = if request.require_json {
                 json!({
                     "route": "direct_reply",
-                    "assistant_reply": "Mock response from ferrum",
+                    "assistant_reply": "Mock response from AI MicroAgents",
                     "tool_calls": [],
                     "memory_writes": [],
                     "should_summarize": false,
@@ -330,7 +330,7 @@ impl LlmProvider for OpenRouterClient {
                 })
                 .to_string()
             } else {
-                "Mock response from ferrum".to_string()
+                "Mock response from AI MicroAgents".to_string()
             };
             return Ok(LlmResponse {
                 model: request.model,
@@ -550,8 +550,15 @@ where
 
     let value = Option::<serde_json::Value>::deserialize(deserializer)?;
     Ok(match value {
-        Some(serde_json::Value::String(raw)) => raw.parse::<f64>().ok().map(|v| v * 1_000_000.0),
-        Some(serde_json::Value::Number(n)) => n.as_f64().map(|v| v * 1_000_000.0),
+        Some(serde_json::Value::String(raw)) => raw
+            .parse::<f64>()
+            .ok()
+            .filter(|v| v.is_finite() && *v >= 0.0)
+            .map(|v| v * 1_000_000.0),
+        Some(serde_json::Value::Number(n)) => n
+            .as_f64()
+            .filter(|v| v.is_finite() && *v >= 0.0)
+            .map(|v| v * 1_000_000.0),
         _ => None,
     })
 }

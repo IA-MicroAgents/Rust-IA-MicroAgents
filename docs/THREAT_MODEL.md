@@ -1,4 +1,4 @@
-# Ferrum Threat Model
+# AI MicroAgents Threat Model
 
 ## Assets
 - OpenRouter API key

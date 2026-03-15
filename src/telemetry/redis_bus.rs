@@ -6,6 +6,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::{
     errors::AppResult,
+    memory::BrainWriteCandidate,
     storage::{BusEventEnvelope, Store},
 };
 
@@ -318,6 +319,22 @@ impl MemoryConsumer {
                         confidence,
                         source_turn_id,
                     )
+                    .await?;
+            }
+            "memory.brain.write" => {
+                let payload = envelope
+                    .payload
+                    .get("candidates")
+                    .cloned()
+                    .unwrap_or_else(|| Value::Array(Vec::new()));
+                let candidates: Vec<BrainWriteCandidate> = serde_json::from_value(payload)
+                    .map_err(|e| {
+                        crate::errors::AppError::Storage(format!(
+                            "decode brain memory candidates failed: {e}"
+                        ))
+                    })?;
+                self.store
+                    .save_or_merge_brain_candidates(&candidates)
                     .await?;
             }
             other => {

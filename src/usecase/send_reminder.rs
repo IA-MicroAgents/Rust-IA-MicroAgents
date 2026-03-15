@@ -63,7 +63,8 @@ impl SendReminderUseCase {
                         .await;
                     let _ = self.store.mark_reminder_sent(parsed.reminder_id).await;
                     let _ = self.store.complete_job(job_id).await;
-                    counter!("ferrum_scheduler_jobs_total", "status" => "done").increment(1);
+                    counter!("ai_microagents_scheduler_jobs_total", "status" => "done")
+                        .increment(1);
                     Ok(())
                 }
                 Err(err) => {
@@ -78,7 +79,8 @@ impl SendReminderUseCase {
                         .mark_reminder_failed(parsed.reminder_id, &err.to_string())
                         .await;
                     let _ = self.store.fail_job(job_id, &err.to_string()).await;
-                    counter!("ferrum_scheduler_jobs_total", "status" => "failed").increment(1);
+                    counter!("ai_microagents_scheduler_jobs_total", "status" => "failed")
+                        .increment(1);
                     Err(err.to_string())
                 }
             }

@@ -143,7 +143,7 @@ mod tests {
             candidate_role: None,
             model_route: None,
             route_key: "fast_text".to_string(),
-            resolved_model: "model-fast".to_string(),
+            resolved_model: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
             requires_live_data: false,
             evidence_inputs: vec![],
             analysis_track: "general_analysis".to_string(),

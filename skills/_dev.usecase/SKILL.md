@@ -1,6 +1,6 @@
 ---
 name: dev-usecase-layer
-description: Usar cuando haya que crear o refactorizar casos de uso del sistema siguiendo la capa usecase de Ferrum.
+description: Usar cuando haya que crear o refactorizar casos de uso del sistema siguiendo la capa usecase de AI MicroAgents.
 ---
 
 # Capa `usecase`

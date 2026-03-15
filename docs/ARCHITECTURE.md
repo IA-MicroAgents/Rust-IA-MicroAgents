@@ -1,4 +1,4 @@
-# Ferrum Architecture
+# AI MicroAgents Architecture
 
 ## High-Level Components
 - `src/app.rs`: runtime assembly, queue workers, CLI actions.

@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use ferrum::config::{CacheConfig, DatabaseConfig};
+use ai_microagents::config::{CacheConfig, DatabaseConfig};
 use uuid::Uuid;
 
 static ENV_LOADED: OnceLock<()> = OnceLock::new();
@@ -20,8 +20,8 @@ impl TestBackend {
             .or_else(|_| std::env::var("REDIS_URL"))
             .expect("FERRUM_REDIS_URL or REDIS_URL is required for tests");
         let suffix = Uuid::new_v4().simple().to_string();
-        let schema = format!("ferrum_test_{}_{}", sanitize(prefix), suffix);
-        let namespace = format!("ferrum:test:{}:{}", sanitize(prefix), suffix);
+        let schema = format!("ai_microagents_test_{}_{}", sanitize(prefix), suffix);
+        let namespace = format!("ai-microagents:test:{}:{}", sanitize(prefix), suffix);
 
         Self {
             database: DatabaseConfig {

@@ -3,445 +3,353 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ferrum Dashboard</title>
+  <title>AI MicroAgents Dashboard</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23162044'/%3E%3Cpath d='M22 18h20v6H29v8h11v6H29v14h-7V18z' fill='%23f7fbff'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="/static/vendor/pico.min.css" />
-  <link rel="stylesheet" href="/static/dashboard.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist/styles/webawesome.css" />
+  <script type="module">
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/badge/badge.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/button/button.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/card/card.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/checkbox/checkbox.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/input/input.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/option/option.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/select/select.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/tab-group/tab-group.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/tab/tab.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/tab-panel/tab-panel.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/textarea/textarea.js";
+  </script>
   <script src="/static/vendor/cytoscape.min.js"></script>
 </head>
-<body class="theme-pro">
-  <div class="dashboard dashboard-shell">
-    <aside class="dashboard-sidebar">
-      <div class="sidebar-panel">
-        <div class="sidebar-brand">
-          <div class="brand-mark">F</div>
-          <div class="sidebar-brand-copy">
-            <p class="eyebrow">Ferrum Runtime</p>
-            <h1>Mission Control</h1>
-          </div>
+<body>
+  <main class="wa-stack wa-gap-xl">
+    <wa-card with-header>
+      <div slot="header" class="wa-flank wa-gap-l">
+        <div class="wa-stack wa-gap-xs">
+          <p class="wa-caption-m">AI MicroAgents Runtime</p>
+          <h1 class="wa-heading-3xl">Mission Control</h1>
+          <p class="wa-body-l wa-color-text-quiet">Panel operativo para supervisar capacidad, eventos, flujo de ejecución y configuración sin una capa visual custom encima.</p>
         </div>
-        <p class="sidebar-copy">Panel operativo para supervisar capacidad, eventos, flujo de ejecución y configuración en un solo lugar.</p>
-      </div>
-
-      <nav class="tab-nav" aria-label="Dashboard views">
-        <button class="tab-button active" data-tab="home">
-          <span>Overview</span>
-          <small>Estado, capacidad y canal</small>
-        </button>
-        <button class="tab-button" data-tab="flow">
-          <span>Flow</span>
-          <small>Grafo vivo del runtime</small>
-        </button>
-        <button class="tab-button" data-tab="events">
-          <span>Events</span>
-          <small>Mensajes y trazas</small>
-        </button>
-        <button class="tab-button" data-tab="config">
-          <span>Config</span>
-          <small>Runtime settings</small>
-        </button>
-      </nav>
-
-      <div class="sidebar-panel sidebar-panel-muted">
-        <div class="sidebar-metric">
-          <span>Identity</span>
-          <strong>{{ identity_id }}</strong>
-        </div>
-        <div class="sidebar-metric">
-          <span>Skills catalog</span>
-          <strong>{{ loaded_skills }}</strong>
-        </div>
-        <div class="sidebar-metric">
-          <span>Telegram</span>
-          <strong>{% if telegram_enabled %}enabled{% else %}disabled{% endif %}</strong>
+        <div class="wa-cluster wa-gap-s wa-flex-wrap">
+          <wa-badge>State <strong id="runtime-state">{{ runtime_state }}</strong></wa-badge>
+          <wa-badge>Identity <strong>{{ identity_id }}</strong></wa-badge>
+          <wa-badge>Channel <strong id="active-channel">{{ active_channel }}</strong></wa-badge>
+          <wa-badge>Queue <strong id="queue-depth">{{ queue_depth }}</strong></wa-badge>
+          <wa-badge>Updated <strong id="ts">-</strong></wa-badge>
         </div>
       </div>
-    </aside>
 
-    <div class="dashboard-main-shell">
-      <header class="hero-header">
-        <div class="hero-copy">
-          <p class="eyebrow">Autonomous orchestration</p>
-          <h2>Ferrum Mission Control</h2>
-          <p class="hero-description">Supervisa el supervisor, la capacidad del team y la entrega sobre Telegram sin salir del runtime.</p>
-          <div class="hero-summary">
-            <div class="hero-summary-card">
-              <span>Identity</span>
-              <strong>{{ identity_id }}</strong>
-            </div>
-            <div class="hero-summary-card">
-              <span>Channel</span>
-              <strong id="active-channel">{{ active_channel }}</strong>
-            </div>
-            <div class="hero-summary-card">
-              <span>Estimated cost</span>
-              <strong>${{ total_cost_usd }}</strong>
-            </div>
+      <div class="wa-grid" style="--min-column-size: 14rem;">
+        <wa-card with-header>
+          <span slot="header">Persistent Pool</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl" id="team-size">{{ team_size }}</strong>
+            <span class="wa-caption-m">Subagentes base del supervisor.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Configured Team</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl" id="configured-team-size">{{ configured_team_size }}</strong>
+            <span class="wa-caption-m">Capacidad persistente configurada.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Parallel Limit</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl" id="effective-parallel-limit">{{ effective_parallel_limit }}</strong>
+            <span class="wa-caption-m">Tope efectivo de ejecución paralela.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Elastic Cap</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl" id="elastic-cap">-</strong>
+            <span class="wa-caption-m">Burst efímero calculado por recursos.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Estimated Cost</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl">${{ total_cost_usd }}</strong>
+            <span class="wa-caption-m">Costo acumulado visible del runtime.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Storage Stack</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-l">{{ database_backend }}</strong>
+            <span class="wa-caption-m">Cache <strong>{{ cache_backend }}</strong></span>
+          </div>
+        </wa-card>
+      </div>
+    </wa-card>
+
+    <wa-tab-group id="dashboard-tab-group" active="home">
+      <wa-tab slot="nav" panel="home">Overview</wa-tab>
+      <wa-tab slot="nav" panel="flow">Flow</wa-tab>
+      <wa-tab slot="nav" panel="events">Events</wa-tab>
+      <wa-tab slot="nav" panel="config">Config</wa-tab>
+
+      <wa-tab-panel name="home">
+      <div class="wa-stack wa-gap-xl">
+      <div class="wa-grid" style="--min-column-size: 14rem;">
+        <wa-card with-header>
+          <span slot="header">Elastic Burst</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl" id="elastic-count">0</strong>
+            <span class="wa-caption-m">Subagentes efímeros vivos.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Queue</span>
+          <div class="wa-stack wa-gap-xs">
+            <strong class="wa-heading-2xl" id="queue-depth-inline">{{ queue_depth }}</strong>
+            <span class="wa-caption-m">Eventos pendientes en la cola.</span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Parallelism</span>
+          <div class="wa-stack wa-gap-xs">
+            <span>Active tasks <strong id="active-task-count">0</strong></span>
+            <span>Current batch <strong id="parallel-width">0</strong></span>
+            <span>Skills <strong>{{ loaded_skills }}</strong></span>
+          </div>
+        </wa-card>
+      </div>
+
+      <div class="wa-grid" style="--min-column-size: 18rem;">
+        <wa-card with-header>
+          <span slot="header">Host Resources</span>
+          <div class="wa-stack wa-gap-xs">
+            <span>CPU cores <strong id="host-cpu-cores">-</strong></span>
+            <span>CPU usage <strong id="host-cpu-usage">-</strong></span>
+            <span>Memory pressure <strong id="host-memory-pressure">-</strong></span>
+            <span>Free memory <strong id="host-free-memory">-</strong></span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Adaptive Burst</span>
+          <div class="wa-stack wa-gap-xs">
+            <span>Configured ephemeral cap <strong id="host-configured-ephemeral">-</strong></span>
+            <span>Effective ephemeral cap <strong id="host-effective-ephemeral">-</strong></span>
+            <span>Planner max tasks <strong id="planner-max-tasks">-</strong></span>
+            <span>Plan max depth <strong id="planner-max-depth">-</strong></span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Redis Bus</span>
+          <div class="wa-stack wa-gap-xs">
+            <span>Enabled <strong id="bus-enabled">-</strong></span>
+            <span>Outbox pending <strong id="bus-outbox-pending">-</strong></span>
+            <span>Outbox published <strong id="bus-outbox-published">-</strong></span>
+            <span>Outbox retries <strong id="bus-outbox-failed">-</strong></span>
+          </div>
+        </wa-card>
+        <wa-card with-header>
+          <span slot="header">Stream Lag</span>
+          <div class="wa-stack wa-gap-xs">
+            <span>Events pending <strong id="bus-events-pending">-</strong></span>
+            <span>Memory pending <strong id="bus-memory-pending">-</strong></span>
+            <span>Jobs pending <strong id="bus-jobs-pending">-</strong></span>
+            <span>Prefix <strong id="bus-stream-prefix">-</strong></span>
+          </div>
+        </wa-card>
+      </div>
+
+      <wa-card with-header>
+        <div slot="header" class="wa-flank wa-gap-m">
+          <div class="wa-stack wa-gap-xs">
+            <span class="wa-caption-m">Telegram</span>
+            <h2 class="wa-heading-l">Canal activo</h2>
+          </div>
+          <div class="wa-cluster wa-gap-s wa-flex-wrap">
+            <wa-badge>Skills <strong>{{ loaded_skills }}</strong></wa-badge>
+            <wa-badge>Telegram <strong>{% if telegram_enabled %}enabled{% else %}disabled{% endif %}</strong></wa-badge>
           </div>
         </div>
-        <div class="hero-rail">
-          <div class="status-pill">
-            <span class="status-dot"></span>
-            <span id="runtime-state">{{ runtime_state }}</span>
-          </div>
-          <div class="hero-chip">Persistent pool: <strong id="persistent-count">{{ team_size }}</strong></div>
-          <div class="hero-chip">Configured team: <strong id="configured-team-size">{{ configured_team_size }}</strong></div>
-          <div class="hero-chip">Parallel limit: <strong id="effective-parallel-limit">{{ effective_parallel_limit }}</strong></div>
-          <div class="hero-chip">Elastic cap: <strong id="elastic-cap">-</strong></div>
-          <div class="hero-chip">DB: <strong>{{ database_backend }}</strong></div>
-          <div class="hero-chip">Cache: <strong>{{ cache_backend }}</strong></div>
-        </div>
-      </header>
 
-      <main class="dashboard-content">
-      <section class="tab-panel active" data-panel="home">
-        <section class="tab-lead">
-          <div>
-            <p class="eyebrow">Overview</p>
-            <h2 class="tab-lead-title">Operational snapshot</h2>
-            <p class="tab-lead-copy">Lectura rápida del estado del runtime, el burst del team y la salud del bus antes de entrar al flujo detallado.</p>
+        <div class="wa-grid" style="--min-column-size: 20rem;">
+          <div class="wa-stack wa-gap-s">
+            {% if telegram_enabled %}
+            <p class="wa-body-m wa-color-text-quiet">Telegram está corriendo por long polling oficial. El panel consume snapshots y eventos reales del runtime.</p>
+            <p class="wa-heading-l">
+              {% if telegram_bot_username.len() > 0 %}
+              @{{ telegram_bot_username }}
+              {% else %}
+              username pendiente
+              {% endif %}
+            </p>
+            {% else %}
+            <p class="wa-body-m wa-color-text-quiet">Activa <code>TELEGRAM_ENABLED=true</code> y configura el token del bot.</p>
+            {% endif %}
           </div>
-          <div class="tab-lead-pills">
-            <span class="lead-pill">Skills <strong>{{ loaded_skills }}</strong></span>
-            <span class="lead-pill">Queue <strong id="queue-depth">{{ queue_depth }}</strong></span>
-            <span class="lead-pill">Updated <strong id="ts"></strong></span>
-          </div>
-        </section>
-        <section class="overview-grid">
-          <article class="card col-4 stat-card tone-cyan">
-            <h2>Persistent Pool</h2>
-            <div class="value" id="team-size">{{ team_size }}</div>
-            <div class="sub">Subagentes base del supervisor</div>
-          </article>
-          <article class="card col-4 stat-card tone-amber">
-            <h2>Elastic Burst</h2>
-            <div class="value" id="elastic-count">0</div>
-            <div class="sub">Subagentes efímeros vivos</div>
-          </article>
-          <article class="card col-4 stat-card tone-green">
-            <h2>Queue</h2>
-            <div class="value" id="queue-depth-inline">{{ queue_depth }}</div>
-            <div class="sub">Eventos pendientes</div>
-          </article>
 
-          <article class="card col-8 feature-card">
-            <h2>Execution Control</h2>
-            <ul class="metric-list">
-              <li>Coste estimado total: <strong>${{ total_cost_usd }}</strong></li>
-              <li>Canal activo: <strong>{{ active_channel }}</strong></li>
-              <li>Storage stack: <strong>{{ database_backend }}</strong> + <strong>{{ cache_backend }}</strong></li>
-              <li>Última actualización visible en la cabecera del panel.</li>
+          <div class="wa-stack wa-gap-s">
+            <p class="wa-body-m wa-color-text-quiet">El supervisor recibe el chat desde Telegram, decide si responder directo o abrir plan, y crea burst workers efímeros solo si los recursos del host lo permiten.</p>
+            <ul class="wa-list-plain wa-stack wa-gap-xs">
+              <li>Estado: <strong>{% if telegram_enabled %}enabled{% else %}disabled{% endif %}</strong></li>
+              <li>Username: <strong>{% if telegram_bot_username.len() > 0 %}@{{ telegram_bot_username }}{% else %}-{% endif %}</strong></li>
+              <li>Workers efímeros: <strong>nacen y mueren según carga real + configuración</strong></li>
             </ul>
-          </article>
-          <article class="card col-4 compact-card">
-            <h2>Parallelism</h2>
-            <div class="metric-stack">
-              <div class="metric-chip">Active tasks <strong id="active-task-count">0</strong></div>
-              <div class="metric-chip">Current batch <strong id="parallel-width">0</strong></div>
-              <div class="metric-chip">Skills <strong>{{ loaded_skills }}</strong></div>
-            </div>
-          </article>
-
-          <article class="card col-6 analytics-card">
-            <h2>Host Resources</h2>
-            <div class="metric-stack">
-              <div class="metric-chip">CPU cores <strong id="host-cpu-cores">-</strong></div>
-              <div class="metric-chip">CPU usage <strong id="host-cpu-usage">-</strong></div>
-              <div class="metric-chip">Memory pressure <strong id="host-memory-pressure">-</strong></div>
-              <div class="metric-chip">Free memory <strong id="host-free-memory">-</strong></div>
-            </div>
-          </article>
-          <article class="card col-6 analytics-card">
-            <h2>Adaptive Burst</h2>
-            <div class="metric-stack">
-              <div class="metric-chip">Configured ephemeral cap <strong id="host-configured-ephemeral">-</strong></div>
-              <div class="metric-chip">Effective ephemeral cap <strong id="host-effective-ephemeral">-</strong></div>
-              <div class="metric-chip">Planner max tasks <strong id="planner-max-tasks">-</strong></div>
-              <div class="metric-chip">Plan max depth <strong id="planner-max-depth">-</strong></div>
-            </div>
-          </article>
-          <article class="card col-6 analytics-card">
-            <h2>Redis Bus</h2>
-            <div class="metric-stack">
-              <div class="metric-chip">Enabled <strong id="bus-enabled">-</strong></div>
-              <div class="metric-chip">Outbox pending <strong id="bus-outbox-pending">-</strong></div>
-              <div class="metric-chip">Outbox published <strong id="bus-outbox-published">-</strong></div>
-              <div class="metric-chip">Outbox retries <strong id="bus-outbox-failed">-</strong></div>
-            </div>
-          </article>
-          <article class="card col-6 analytics-card">
-            <h2>Stream Lag</h2>
-            <div class="metric-stack">
-              <div class="metric-chip">Events pending <strong id="bus-events-pending">-</strong></div>
-              <div class="metric-chip">Memory pending <strong id="bus-memory-pending">-</strong></div>
-              <div class="metric-chip">Jobs pending <strong id="bus-jobs-pending">-</strong></div>
-              <div class="metric-chip">Prefix <strong id="bus-stream-prefix">-</strong></div>
-            </div>
-          </article>
-
-          <article class="card col-12 spotlight-card">
-            <h2>Telegram Bot</h2>
-            <div class="qr-grid">
-              <div class="qr-image-wrap telegram-panel">
-                {% if telegram_enabled %}
-                <div class="muted">Telegram está corriendo por long polling oficial. El canvas animará entrada, delegación, review, integración y respuesta.</div>
-                <div class="value compact-value">
-                  {% if telegram_bot_username.len() > 0 %}
-                  @{{ telegram_bot_username }}
-                  {% else %}
-                  username pendiente
-                  {% endif %}
-                </div>
-                {% else %}
-                <div class="muted">Activa <code>TELEGRAM_ENABLED=true</code> y configura el token del bot.</div>
-                {% endif %}
-              </div>
-              <div class="qr-copy">
-                <div class="muted">El supervisor recibe el chat desde Telegram, decide si responder directo o abrir plan, y crea burst workers efímeros solo si los recursos del host lo permiten.</div>
-                <div class="sub">Usa <strong>Flow</strong> para ver el grafo real de ejecución y <strong>Config</strong> para ajustar capacidad, agresividad del planner y política de rendimiento. La selección de skills y modelos es automática por tarea.</div>
-                {% if telegram_enabled %}
-                {% if telegram_bot_link.len() > 0 %}
-                <a class="wa-link-btn" href="{{ telegram_bot_link }}" target="_blank" rel="noreferrer">Abrir bot en Telegram</a>
-                {% else %}
-                <button class="wa-link-btn" type="button" disabled>Configura TELEGRAM_BOT_USERNAME</button>
-                {% endif %}
-                {% else %}
-                <button class="wa-link-btn" type="button" disabled>Telegram deshabilitado</button>
-                {% endif %}
-                <ul class="metric-list">
-                  <li>Estado: <strong>{% if telegram_enabled %}enabled{% else %}disabled{% endif %}</strong></li>
-                  <li>Username: <strong>{% if telegram_bot_username.len() > 0 %}@{{ telegram_bot_username }}{% else %}-{% endif %}</strong></li>
-                  <li>Workers efímeros: <strong>nacen y mueren según carga real + configuración</strong></li>
-                </ul>
-              </div>
-            </div>
-          </article>
-        </section>
-      </section>
-
-      <section class="tab-panel" data-panel="flow">
-        <section class="tab-lead">
-          <div>
-            <p class="eyebrow">Execution graph</p>
-            <h2 class="tab-lead-title">Live orchestration flow</h2>
-            <p class="tab-lead-copy">Vista de control para seguir delegación, revisión, integración y delivery en tiempo real.</p>
+            {% if telegram_enabled %}
+            {% if telegram_bot_link.len() > 0 %}
+            <a class="wa-link" href="{{ telegram_bot_link }}" target="_blank" rel="noreferrer">Abrir bot en Telegram</a>
+            {% else %}
+            <span class="wa-caption-m">Configura <code>TELEGRAM_BOT_USERNAME</code> para generar el link.</span>
+            {% endif %}
+            {% else %}
+            <span class="wa-caption-m">Telegram deshabilitado.</span>
+            {% endif %}
           </div>
-        </section>
-        <article class="card canvas-card canvas-card-wide canvas-shell">
-          <div class="canvas-head">
-            <div>
-              <h2>Flow Canvas</h2>
-              <div class="muted">Telegram -> Supervisor -> Persistent/Ephemeral workers -> Review -> Integrate -> Delivery. El canvas se reconstruye desde snapshot real y eventos runtime, sin demo fijo.</div>
-            </div>
-            <div class="canvas-badges">
-              <span class="canvas-badge">Persistent <strong id="canvas-persistent">{{ team_size }}</strong></span>
-              <span class="canvas-badge">Ephemeral <strong id="canvas-ephemeral">0</strong></span>
-              <span class="canvas-badge">Parallel <strong id="canvas-parallel">0</strong></span>
-              <span class="canvas-badge">CPU <strong id="canvas-cpu">-</strong></span>
-              <span class="canvas-badge">Mem <strong id="canvas-mem">-</strong></span>
-            </div>
-          </div>
-          <div class="turn-stage-strip" id="turn-stage-strip"></div>
-          <div class="graph-scroll" id="graph-scroll">
-            <div class="graph-stage" id="graph-stage">
-              <div id="cy-flow" class="cy-flow"></div>
-              <div id="graph-layer" class="graph-layer"></div>
-              <div id="packet-layer" class="packet-layer"></div>
-            </div>
-          </div>
-          <div class="canvas-legend">
-            <span><i class="legend-dot mobile"></i>Telegram</span>
-            <span><i class="legend-dot supervisor"></i>Supervisor</span>
-            <span><i class="legend-dot worker"></i>Persistent worker</span>
-            <span><i class="legend-dot ephemeral"></i>Ephemeral worker</span>
-            <span><i class="legend-dot review"></i>Review</span>
-            <span><i class="legend-dot integration"></i>Integration</span>
-            <span><i class="legend-dot task"></i>Task</span>
-          </div>
-        </article>
-      </section>
-
-      <section class="tab-panel" data-panel="events">
-        <section class="tab-lead">
-          <div>
-            <p class="eyebrow">Observability</p>
-            <h2 class="tab-lead-title">Channel and runtime feed</h2>
-            <p class="tab-lead-copy">Mensajes y eventos ordenados para entender qué entró, qué ejecutó Ferrum y cómo terminó cada turno.</p>
-          </div>
-        </section>
-        <div class="events-layout">
-          <article class="card side-panel log-card">
-            <h2>Messages</h2>
-            <div class="muted">Solo mensajes entrantes y salientes del canal.</div>
-            <div id="message-log" class="message-log"></div>
-          </article>
-          <article class="card side-panel log-card">
-            <h2>Runtime Events</h2>
-            <div class="muted">Plan, workers, retries, review, integración y delivery.</div>
-            <div id="events" class="event-log"></div>
-          </article>
         </div>
-      </section>
+      </wa-card>
+      </div>
+      </wa-tab-panel>
 
-      <section class="tab-panel" data-panel="config">
-        <section class="tab-lead">
-          <div>
-            <p class="eyebrow">Control plane</p>
-            <h2 class="tab-lead-title">Runtime configuration</h2>
-            <p class="tab-lead-copy">Ajusta capacidad, política y burst del team desde una consola visual más clara que el bootstrap inicial.</p>
+      <wa-tab-panel name="flow">
+      <div class="wa-stack wa-gap-xl">
+      <wa-card with-header>
+        <div slot="header" class="wa-flank wa-gap-m">
+          <div class="wa-stack wa-gap-xs">
+            <span class="wa-caption-m">Execution Graph</span>
+            <h2 class="wa-heading-l">Live orchestration flow</h2>
+            <p class="wa-body-m wa-color-text-quiet">Telegram, supervisor, workers persistentes y burst efímero en tiempo real.</p>
           </div>
-        </section>
-        <div class="config-layout">
-          <article class="card config-card">
-            <div class="config-head">
-              <div>
-                <h2>Team Control</h2>
-                <div class="muted">Estos parámetros reemplazan el bootstrap de entorno para el runtime activo y quedan persistidos en Postgres. Skills y modelos se resuelven automáticamente por tarea; aquí solo ajustas capacidad y política global.</div>
-              </div>
-              <div class="config-status" id="config-status">Sin cambios</div>
-            </div>
-            <form id="team-config-form" class="config-form">
-              <div class="field-grid">
-                <label>
-                  <span>Team size</span>
-                  <input type="number" min="1" id="cfg-team-size" />
-                </label>
-                <label>
-                  <span>Max parallel tasks</span>
-                  <input type="number" min="1" id="cfg-max-parallel" />
-                </label>
-                <label>
-                  <span>Subagent mode</span>
-                  <select id="cfg-subagent-mode">
-                    <option value="generalist">generalist</option>
-                    <option value="specialist">specialist</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Profile path</span>
-                  <input type="text" id="cfg-profile-path" placeholder="subagents" />
-                </label>
-                <label>
-                  <span>Review interval (ms)</span>
-                  <input type="number" min="100" step="100" id="cfg-review-interval" />
-                </label>
-                <label>
-                  <span>Performance policy</span>
-                  <select id="cfg-performance-policy">
-                    <option value="fast">fast</option>
-                    <option value="balanced_fast">balanced_fast</option>
-                    <option value="max_quality">max_quality</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Planner aggressiveness</span>
-                  <input type="number" min="0" max="100" step="5" id="cfg-planner-aggressiveness" />
-                </label>
-                <label>
-                  <span>Max escalation tier</span>
-                  <select id="cfg-escalation-tier">
-                    <option value="conservative">conservative</option>
-                    <option value="standard">standard</option>
-                    <option value="aggressive">aggressive</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Typing delay (ms)</span>
-                  <input type="number" min="0" step="100" id="cfg-typing-delay" />
-                </label>
-                <label>
-                  <span>Review loops per task</span>
-                  <input type="number" min="1" id="cfg-review-loops" />
-                </label>
-                <label>
-                  <span>Task retries</span>
-                  <input type="number" min="1" id="cfg-task-retries" />
-                </label>
-                <label>
-                  <span>Plan max tasks</span>
-                  <input type="number" min="1" id="cfg-plan-max-tasks" />
-                </label>
-                <label>
-                  <span>Plan max depth</span>
-                  <input type="number" min="1" id="cfg-plan-max-depth" />
-                </label>
-                <label>
-                  <span>Max ephemeral subagents</span>
-                  <input type="number" min="0" id="cfg-max-ephemeral" />
-                </label>
-                <label class="toggle-row">
-                  <span>Allow ephemeral subagents</span>
-                  <input type="checkbox" id="cfg-allow-ephemeral" />
-                </label>
-                <label class="toggle-row">
-                  <span>Require final review</span>
-                  <input type="checkbox" id="cfg-final-review" />
-                </label>
-                <label class="toggle-row">
-                  <span>Progress updates</span>
-                  <input type="checkbox" id="cfg-progress-updates" />
-                </label>
-                <label>
-                  <span>Progress threshold (ms)</span>
-                  <input type="number" min="500" step="100" id="cfg-progress-threshold" />
-                </label>
-              </div>
-
-              <label>
-                <span>Roleset</span>
-                <textarea id="cfg-roleset" rows="2" placeholder="researcher,implementer,verifier,integrator"></textarea>
-              </label>
-
-              <section class="config-note">
-                <div class="section-head">
-                  <h3>Asignación automática</h3>
-                  <div class="muted">Ferrum ya no expone overrides manuales de skills ni de modelos por rol o subagente. El supervisor y el broker eligen la combinación adecuada según la tarea, la modalidad, la latencia y el costo.</div>
-                </div>
-                <div class="auto-grid">
-                  <div class="auto-pill">
-                    <strong>Skills</strong>
-                    <span>Todos los subagentes comparten el catálogo completo.</span>
-                  </div>
-                  <div class="auto-pill">
-                    <strong>Capability Routes</strong>
-                    <span>Se resuelven automáticamente por tarea.</span>
-                  </div>
-                  <div class="auto-pill">
-                    <strong>Modelos OpenRouter</strong>
-                    <span>El broker selecciona el modelo concreto más adecuado.</span>
-                  </div>
-                </div>
-              </section>
-
-              <div class="config-actions">
-                <button class="primary-btn" type="submit">Guardar runtime settings</button>
-                <button class="secondary-btn" type="button" id="config-refresh-btn">Recargar desde runtime</button>
-              </div>
-            </form>
-          </article>
-
-          <article class="card config-card">
-            <h2>Shared Skills Catalog</h2>
-            <div class="muted">Todos los agentes y subagentes heredan este catálogo. Ya no se gestiona skill por skill desde el panel; aquí solo inspeccionas qué capacidades tiene disponible Ferrum.</div>
-            <div id="skills-catalog" class="catalog-grid"></div>
-          </article>
-
-          <article class="card config-card danger-card">
-            <h2>Danger Zone</h2>
-            <div class="muted">Esto elimina toda la memoria conversacional y el estado runtime de Ferrum en Postgres y Redis. No borra `IDENTITY.md`, skills ni snapshots de configuración.</div>
-            <label>
-              <span>Escribe <strong>RESET</strong> para confirmar</span>
-              <input type="text" id="reset-data-confirm" placeholder="RESET" autocomplete="off" />
-            </label>
-            <div class="config-actions">
-              <button class="danger-btn" type="button" id="reset-data-btn">Resetear data</button>
-            </div>
-          </article>
+          <div class="wa-cluster wa-gap-s wa-flex-wrap">
+            <wa-badge>Persistent <strong id="canvas-persistent">{{ team_size }}</strong></wa-badge>
+            <wa-badge>Ephemeral <strong id="canvas-ephemeral">0</strong></wa-badge>
+            <wa-badge>Parallel <strong id="canvas-parallel">0</strong></wa-badge>
+            <wa-badge>CPU <strong id="canvas-cpu">-</strong></wa-badge>
+            <wa-badge>Mem <strong id="canvas-mem">-</strong></wa-badge>
+          </div>
         </div>
-      </section>
-      </main>
-    </div>
-  </div>
+
+        <div class="wa-stack wa-gap-m">
+          <div id="turn-stage-strip" class="wa-cluster wa-gap-s wa-flex-wrap"></div>
+          <div id="graph-scroll" style="overflow:auto;">
+            <div id="graph-stage" style="position:relative; min-block-size:42rem;">
+              <div id="cy-flow" style="min-block-size:42rem;"></div>
+              <div id="graph-layer" hidden></div>
+              <div id="packet-layer" hidden></div>
+            </div>
+          </div>
+          <div class="wa-cluster wa-gap-s wa-flex-wrap">
+            <wa-badge>Telegram</wa-badge>
+            <wa-badge>Supervisor</wa-badge>
+            <wa-badge>Persistent worker</wa-badge>
+            <wa-badge>Ephemeral worker</wa-badge>
+            <wa-badge>Review</wa-badge>
+            <wa-badge>Integration</wa-badge>
+            <wa-badge>Task</wa-badge>
+          </div>
+        </div>
+      </wa-card>
+      </div>
+      </wa-tab-panel>
+
+      <wa-tab-panel name="events">
+      <div class="wa-stack wa-gap-xl">
+      <div class="wa-grid" style="--min-column-size: 24rem;">
+        <wa-card with-header>
+          <div slot="header" class="wa-stack wa-gap-xs">
+            <span class="wa-caption-m">Messages</span>
+            <span class="wa-body-m wa-color-text-quiet">Solo mensajes entrantes y salientes del canal.</span>
+          </div>
+          <div id="message-log" class="wa-stack wa-gap-s"></div>
+        </wa-card>
+        <wa-card with-header>
+          <div slot="header" class="wa-stack wa-gap-xs">
+            <span class="wa-caption-m">Runtime Events</span>
+            <span class="wa-body-m wa-color-text-quiet">Plan, workers, retries, review, integración y delivery.</span>
+          </div>
+          <div id="events" class="wa-stack wa-gap-s"></div>
+        </wa-card>
+      </div>
+      </div>
+      </wa-tab-panel>
+
+      <wa-tab-panel name="config">
+      <div class="wa-stack wa-gap-xl">
+      <wa-card with-header>
+        <div slot="header" class="wa-flank wa-gap-m">
+          <div class="wa-stack wa-gap-xs">
+            <span class="wa-caption-m">Control Plane</span>
+            <h2 class="wa-heading-l">Runtime configuration</h2>
+            <p class="wa-body-m wa-color-text-quiet">Capacidad, política y burst del team sin skins ni overrides visuales propios.</p>
+          </div>
+          <wa-badge id="config-status">Sin cambios</wa-badge>
+        </div>
+
+        <form id="team-config-form" class="wa-stack wa-gap-l">
+          <div class="wa-grid" style="--min-column-size: 16rem;">
+            <wa-input label="Team size" type="number" min="1" id="cfg-team-size"></wa-input>
+            <wa-input label="Max parallel tasks" type="number" min="1" id="cfg-max-parallel"></wa-input>
+            <wa-select label="Subagent mode" id="cfg-subagent-mode">
+              <wa-option value="generalist">generalist</wa-option>
+              <wa-option value="specialist">specialist</wa-option>
+            </wa-select>
+            <wa-input label="Profile path" type="text" id="cfg-profile-path" placeholder="subagents"></wa-input>
+            <wa-input label="Review interval (ms)" type="number" min="100" step="100" id="cfg-review-interval"></wa-input>
+            <wa-select label="Performance policy" id="cfg-performance-policy">
+              <wa-option value="fast">fast</wa-option>
+              <wa-option value="balanced_fast">balanced_fast</wa-option>
+              <wa-option value="max_quality">max_quality</wa-option>
+            </wa-select>
+            <wa-input label="Planner aggressiveness" type="number" min="0" max="100" step="5" id="cfg-planner-aggressiveness"></wa-input>
+            <wa-select label="Max escalation tier" id="cfg-escalation-tier">
+              <wa-option value="conservative">conservative</wa-option>
+              <wa-option value="standard">standard</wa-option>
+              <wa-option value="aggressive">aggressive</wa-option>
+            </wa-select>
+            <wa-input label="Typing delay (ms)" type="number" min="0" step="100" id="cfg-typing-delay"></wa-input>
+            <wa-input label="Review loops per task" type="number" min="1" id="cfg-review-loops"></wa-input>
+            <wa-input label="Task retries" type="number" min="1" id="cfg-task-retries"></wa-input>
+            <wa-input label="Plan max tasks" type="number" min="1" id="cfg-plan-max-tasks"></wa-input>
+            <wa-input label="Plan max depth" type="number" min="1" id="cfg-plan-max-depth"></wa-input>
+            <wa-input label="Max ephemeral subagents" type="number" min="0" id="cfg-max-ephemeral"></wa-input>
+            <wa-input label="Progress threshold (ms)" type="number" min="500" step="100" id="cfg-progress-threshold"></wa-input>
+          </div>
+
+          <div class="wa-grid" style="--min-column-size: 18rem;">
+            <wa-checkbox id="cfg-allow-ephemeral">Allow ephemeral subagents</wa-checkbox>
+            <wa-checkbox id="cfg-final-review">Require final review</wa-checkbox>
+            <wa-checkbox id="cfg-progress-updates">Progress updates</wa-checkbox>
+          </div>
+
+          <wa-textarea label="Roleset" id="cfg-roleset" rows="3" placeholder="researcher,implementer,verifier,integrator"></wa-textarea>
+
+          <div class="wa-cluster wa-gap-s wa-flex-wrap">
+            <wa-button id="config-save-btn" type="button" variant="brand">Guardar runtime settings</wa-button>
+            <wa-button id="config-refresh-btn" type="button" variant="neutral">Recargar desde runtime</wa-button>
+          </div>
+        </form>
+      </wa-card>
+
+      <wa-card with-header>
+        <div slot="header" class="wa-stack wa-gap-xs">
+          <span class="wa-caption-m">Shared Skills Catalog</span>
+          <span class="wa-body-m wa-color-text-quiet">Todos los agentes y subagentes heredan este catálogo. Aquí solo inspeccionas qué capacidades tiene disponible AI MicroAgents.</span>
+        </div>
+        <div id="skills-catalog" class="wa-grid" style="--min-column-size: 18rem;"></div>
+      </wa-card>
+
+      <wa-card with-header>
+        <div slot="header" class="wa-stack wa-gap-xs">
+          <span class="wa-caption-m">Danger Zone</span>
+          <span class="wa-body-m wa-color-text-quiet">Esto elimina memoria conversacional y estado runtime en Postgres y Redis. No toca `IDENTITY.md`, skills ni snapshots de configuración.</span>
+        </div>
+        <div class="wa-stack wa-gap-m">
+          <wa-input label="Escribe RESET para confirmar" id="reset-data-confirm" placeholder="RESET" autocomplete="off"></wa-input>
+          <div class="wa-cluster wa-gap-s wa-flex-wrap">
+            <wa-button id="reset-data-btn" type="button" variant="danger">Resetear data</wa-button>
+          </div>
+        </div>
+      </wa-card>
+      </div>
+      </wa-tab-panel>
+    </wa-tab-group>
+  </main>
 
   <script>
     const eventsEl = document.getElementById('events');
@@ -485,10 +393,9 @@
     const cyFlowEl = document.getElementById('cy-flow');
     const graphLayer = document.getElementById('graph-layer');
     const packetLayer = document.getElementById('packet-layer');
-    const tabButtons = [...document.querySelectorAll('.tab-button')];
-    const tabPanels = [...document.querySelectorAll('.tab-panel')];
+    const dashboardTabGroup = document.getElementById('dashboard-tab-group');
     const configStatusEl = document.getElementById('config-status');
-    const configForm = document.getElementById('team-config-form');
+    const configSaveBtn = document.getElementById('config-save-btn');
     const configRefreshBtn = document.getElementById('config-refresh-btn');
     const skillsCatalogEl = document.getElementById('skills-catalog');
     const resetDataBtn = document.getElementById('reset-data-btn');
@@ -518,7 +425,7 @@
       debugBuffer.push(entry);
       if (debugBuffer.length > 500) debugBuffer.shift();
       if (debugEnabled) {
-        console.log('%c[Ferrum]', 'color:#0ea5e9;font-weight:800', label, payload);
+        console.log('%c[AI MicroAgents]', 'color:#0ea5e9;font-weight:800', label, payload);
       }
       return entry;
     };
@@ -527,7 +434,7 @@
       logs: debugBuffer,
       dump: () => JSON.stringify(debugBuffer, null, 2),
     };
-    window.copyFerrumDebug = async () => {
+    window.copyAIMicroAgentsDebug = async () => {
       const payload = JSON.stringify(debugBuffer, null, 2);
       await navigator.clipboard.writeText(payload);
       debugLog('debug.copied', { entries: debugBuffer.length });
@@ -603,32 +510,48 @@
     const setConfigStatus = (text, kind = 'idle') => {
       configStatusEl.textContent = text;
       configStatusEl.dataset.kind = kind;
+      configStatusEl.setAttribute(
+        'variant',
+        kind === 'ok' ? 'success' : kind === 'error' ? 'danger' : kind === 'pending' ? 'brand' : 'neutral'
+      );
     };
 
-    const selectTab = (tabName) => {
-      tabButtons.forEach((button) => button.classList.toggle('active', button.dataset.tab === tabName));
-      tabPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === tabName));
+    const handleVisibleTabChange = (tabName) => {
       if (tabName === 'flow') {
         setTimeout(renderGraph, 30);
       }
     };
 
-    tabButtons.forEach((button) => {
-      button.addEventListener('click', () => selectTab(button.dataset.tab));
+    dashboardTabGroup.addEventListener('wa-tab-show', (event) => {
+      handleVisibleTabChange(event.detail?.name || '');
     });
 
     const appendEvent = (evt) => {
-      const node = document.createElement('div');
-      const cls = category(evt.event_type || '');
       const p = evt.payload || {};
       const when = new Date(evt.created_at).toLocaleTimeString();
-      node.className = 'event-card';
-      node.innerHTML = `
-        <div class="meta"><span class="type ${cls}">${escapeHtml(evt.event_type)}</span><span>${escapeHtml(evt.id ? evt.id.slice(0, 8) : 'n/a')}</span></div>
-        <div class="meta"><span>${escapeHtml(p.subagent_id || p.plan_id || p.task_id || p.user_id || 'runtime')}</span><span>${escapeHtml(when)}</span></div>
-        <div class="payload">${escapeHtml(shortPayload(p))}</div>
+      const card = document.createElement('wa-card');
+      card.setAttribute('with-header', '');
+      const header = document.createElement('div');
+      header.slot = 'header';
+      header.className = 'wa-flank wa-gap-s';
+      header.innerHTML = `
+        <div class="wa-stack wa-gap-2xs">
+          <strong>${escapeHtml(evt.event_type)}</strong>
+          <span class="wa-caption-s">${escapeHtml(p.subagent_id || p.plan_id || p.task_id || p.user_id || 'runtime')}</span>
+        </div>
+        <div class="wa-stack wa-gap-2xs">
+          <wa-badge>${escapeHtml(evt.id ? evt.id.slice(0, 8) : 'n/a')}</wa-badge>
+          <span class="wa-caption-s">${escapeHtml(when)}</span>
+        </div>
       `;
-      eventsEl.prepend(node);
+      const body = document.createElement('pre');
+      body.textContent = shortPayload(p);
+      body.style.margin = '0';
+      body.style.whiteSpace = 'pre-wrap';
+      body.style.overflowWrap = 'anywhere';
+      card.appendChild(header);
+      card.appendChild(body);
+      eventsEl.prepend(card);
       while (eventsEl.children.length > maxEvents) {
         eventsEl.removeChild(eventsEl.lastElementChild);
       }
@@ -646,17 +569,24 @@
         }
         seenMessageEvents.add(dedupeKey);
       }
-      const row = document.createElement('div');
-      row.className = `message-row ${kind}`;
       const avatar = kind === 'inbound' ? 'TG' : (kind === 'outbound' ? 'AI' : 'SYS');
-      row.innerHTML = `
-        <div class="message-avatar ${kind}">${escapeHtml(avatar)}</div>
-        <div class="message-bubble ${kind}">
-          <div class="message-meta"><span>${escapeHtml(title)}</span><span>${escapeHtml(at)}</span></div>
-          <div class="message-text">${escapeHtml(content)}</div>
+      const card = document.createElement('wa-card');
+      card.setAttribute('with-header', '');
+      const header = document.createElement('div');
+      header.slot = 'header';
+      header.className = 'wa-flank wa-gap-s';
+      header.innerHTML = `
+        <div class="wa-cluster wa-gap-s">
+          <wa-badge>${escapeHtml(avatar)}</wa-badge>
+          <strong>${escapeHtml(title)}</strong>
         </div>
+        <span class="wa-caption-s">${escapeHtml(at)}</span>
       `;
-      messageLogEl.prepend(row);
+      const body = document.createElement('div');
+      body.textContent = content;
+      card.appendChild(header);
+      card.appendChild(body);
+      messageLogEl.prepend(card);
       while (messageLogEl.children.length > maxMessages) {
         messageLogEl.removeChild(messageLogEl.lastElementChild);
       }
@@ -807,13 +737,13 @@
       turnStageStripEl.innerHTML = '';
       turnStageOrder.forEach((stage) => {
         const state = currentTurnTimeline.stages.get(stage);
-        const pill = document.createElement('div');
-        pill.className = `turn-stage-pill ${state ? 'seen' : ''} ${currentTurnTimeline.activeStage === stage ? 'active' : ''}`;
-        const detail = state?.route_key || state?.resolved_model || state?.reason || state?.route || state?.preview || '';
-        pill.innerHTML = `
-          <strong>${escapeHtml(prettyStageName(stage))}</strong>
-          <span>${escapeHtml(activityPreview(detail, 36) || 'idle')}</span>
-        `;
+        const detail = state?.route_key || state?.resolved_model || state?.reason || state?.route || state?.preview || 'idle';
+        const pill = document.createElement('wa-badge');
+        pill.setAttribute(
+          'variant',
+          currentTurnTimeline.activeStage === stage ? 'brand' : state ? 'success' : 'neutral'
+        );
+        pill.textContent = `${prettyStageName(stage)} · ${activityPreview(detail, 36)}`;
         turnStageStripEl.appendChild(pill);
       });
     };
@@ -895,12 +825,8 @@
               'background-color': '#1d2c57',
               'padding': '12px',
               'overlay-opacity': 0,
-              'shadow-blur': 22,
-              'shadow-opacity': 0.28,
-              'shadow-color': '#09142a',
-              'shadow-offset-y': 14,
               'text-outline-width': 0,
-              'transition-property': 'background-color, border-color, line-color, width, shadow-blur, shadow-opacity',
+              'transition-property': 'background-color, border-color, line-color, width',
               'transition-duration': '180ms',
             }
           },
@@ -916,18 +842,18 @@
               opacity: 0.78,
             }
           },
-          { selector: '.mobile', style: { 'background-color': '#0b6b86', 'border-color': '#8fe0ff', 'shadow-color': '#0e85a7' } },
-          { selector: '.supervisor', style: { 'background-color': '#243a74', 'border-color': '#95b7ff', 'shadow-color': '#2c4f99' } },
-          { selector: '.worker', style: { 'background-color': '#1f3362', 'border-color': '#89abff', 'shadow-color': '#203a77' } },
-          { selector: '.ephemeral', style: { 'background-color': '#5c3d24', 'border-color': '#ffb98e', 'shadow-color': '#8f5b2d', 'border-style': 'dashed' } },
-          { selector: '.review', style: { 'background-color': '#503170', 'border-color': '#d6a8ff', 'shadow-color': '#6d42a1' } },
-          { selector: '.integration', style: { 'background-color': '#5c4518', 'border-color': '#ffd184', 'shadow-color': '#8d6613' } },
-          { selector: '.delivery', style: { 'background-color': '#155543', 'border-color': '#84efcb', 'shadow-color': '#19735a' } },
-          { selector: '.task', style: { 'background-color': '#1c2a54', 'border-color': '#93b4ff', 'shadow-color': '#152247' } },
-          { selector: '.state-running', style: { 'border-color': '#7decc8', 'border-width': 2.8, 'shadow-blur': 30, 'shadow-opacity': 0.36 } },
-          { selector: '.state-failed, .state-rejected', style: { 'border-color': '#ff8b93', 'background-color': '#5d2434', 'shadow-color': '#8c3146' } },
-          { selector: '.state-accepted, .state-completed', style: { 'border-color': '#8ef0cd', 'background-color': '#1b5c49', 'shadow-color': '#19715a' } },
-          { selector: '.hot', style: { 'border-width': 3.2, 'border-color': '#f8d06f', 'shadow-blur': 28, 'shadow-color': '#b58b21', 'shadow-opacity': 0.34 } },
+          { selector: '.mobile', style: { 'background-color': '#0b6b86', 'border-color': '#8fe0ff' } },
+          { selector: '.supervisor', style: { 'background-color': '#243a74', 'border-color': '#95b7ff' } },
+          { selector: '.worker', style: { 'background-color': '#1f3362', 'border-color': '#89abff' } },
+          { selector: '.ephemeral', style: { 'background-color': '#5c3d24', 'border-color': '#ffb98e', 'border-style': 'dashed' } },
+          { selector: '.review', style: { 'background-color': '#503170', 'border-color': '#d6a8ff' } },
+          { selector: '.integration', style: { 'background-color': '#5c4518', 'border-color': '#ffd184' } },
+          { selector: '.delivery', style: { 'background-color': '#155543', 'border-color': '#84efcb' } },
+          { selector: '.task', style: { 'background-color': '#1c2a54', 'border-color': '#93b4ff' } },
+          { selector: '.state-running', style: { 'border-color': '#7decc8', 'border-width': 2.8 } },
+          { selector: '.state-failed, .state-rejected', style: { 'border-color': '#ff8b93', 'background-color': '#5d2434' } },
+          { selector: '.state-accepted, .state-completed', style: { 'border-color': '#8ef0cd', 'background-color': '#1b5c49' } },
+          { selector: '.hot', style: { 'border-width': 3.2, 'border-color': '#f8d06f' } },
           { selector: '.edge-control', style: { 'line-color': '#5d7fce', 'target-arrow-color': '#5d7fce' } },
           { selector: '.edge-elastic', style: { 'line-color': '#7decc8', 'target-arrow-color': '#7decc8' } },
           { selector: '.edge-review', style: { 'line-color': '#d69bf3', 'target-arrow-color': '#d69bf3' } },
@@ -944,7 +870,6 @@
           { selector: '.flash-error', style: { 'border-width': 4, 'border-color': '#ff8b93' } },
         ],
         layout: { name: 'preset', fit: false, padding: 20 },
-        wheelSensitivity: 0.18,
       });
       cy.userZoomingEnabled(true);
       cy.userPanningEnabled(true);
@@ -1220,7 +1145,7 @@
         case 'outbound_message_sent':
           appendMessage(
             'outbound',
-            `Ferrum -> ${payload.recipient || ''}`.trim(),
+            `AI MicroAgents -> ${payload.recipient || ''}`.trim(),
             payload.content || '(empty)',
             new Date(evt.created_at || Date.now()).toLocaleTimeString(),
             payload.provider_message_id || evt.id || `outbound:${payload.recipient}:${payload.content || ''}`
@@ -1506,16 +1431,23 @@
     const renderSkillsCatalog = () => {
       skillsCatalogEl.innerHTML = '';
       skillsCatalog.forEach((skill) => {
-        const card = document.createElement('article');
-        card.className = 'catalog-card';
-        card.innerHTML = `
-          <div class="catalog-head">
-            <strong>${escapeHtml(skill.name)}</strong>
-            <span class="catalog-badge">shared</span>
-          </div>
-          <span>${escapeHtml(skill.description || '')}</span>
-          <small>${escapeHtml((skill.tags || []).join(' · ') || 'sin tags')}</small>
+        const card = document.createElement('wa-card');
+        card.setAttribute('with-header', '');
+        const header = document.createElement('div');
+        header.slot = 'header';
+        header.className = 'wa-flank wa-gap-s';
+        header.innerHTML = `
+          <strong>${escapeHtml(skill.name)}</strong>
+          <wa-badge>shared</wa-badge>
         `;
+        const body = document.createElement('div');
+        body.className = 'wa-stack wa-gap-xs';
+        body.innerHTML = `
+          <span>${escapeHtml(skill.description || '')}</span>
+          <span class="wa-caption-s">${escapeHtml((skill.tags || []).join(' · ') || 'sin tags')}</span>
+        `;
+        card.appendChild(header);
+        card.appendChild(body);
         skillsCatalogEl.appendChild(card);
       });
     };
@@ -1571,8 +1503,7 @@
       return base;
     };
 
-    configForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
+    configSaveBtn.addEventListener('click', async () => {
       if (!runtimeConfig?.team) return;
       setConfigStatus('Guardando...', 'pending');
       try {
@@ -1774,6 +1705,7 @@
     };
 
     preload();
+    handleVisibleTabChange(dashboardTabGroup.active || 'home');
     renderTurnStages();
     setInterval(() => scheduleRefresh('interval', 'light', 0), 45000);
     setInterval(() => scheduleRefresh('interval-team', 'full', 0), 180000);

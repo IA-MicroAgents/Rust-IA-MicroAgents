@@ -1215,18 +1215,18 @@ mod tests {
     fn identity() -> SystemIdentity {
         SystemIdentity {
             frontmatter: IdentityFrontmatter {
-                id: "ferrum".to_string(),
-                display_name: "Ferrum".to_string(),
+                id: "ai-microagents".to_string(),
+                display_name: "AI MicroAgents".to_string(),
                 description: "test".to_string(),
                 locale: "en-US".to_string(),
                 timezone: "UTC".to_string(),
                 model_routes: ModelRoutes {
-                    fast: "model-fast".to_string(),
-                    reasoning: "model-reason".to_string(),
-                    tool_use: "model-tool".to_string(),
-                    vision: "model-vision".to_string(),
-                    reviewer: "model-review".to_string(),
-                    planner: "model-plan".to_string(),
+                    fast: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    reasoning: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    tool_use: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    vision: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    reviewer: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    planner: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
                     router_fast: None,
                     fast_text: None,
                     reviewer_fast: None,
@@ -1249,6 +1249,11 @@ mod tests {
                     save_facts: true,
                     save_summaries: true,
                     summarize_every_n_turns: 4,
+                    brain_enabled: true,
+                    precheck_each_turn: true,
+                    auto_write_mode: "aggressive".to_string(),
+                    conversation_limit: 4,
+                    user_limit: 4,
                 },
                 permissions: IdentityPermissions {
                     allowed_skills: vec!["*".to_string()],
@@ -1417,12 +1422,12 @@ mod tests {
         );
 
         assert_eq!(plan.tasks[0].model_route.as_deref(), Some("router_fast"));
-        assert_eq!(plan.tasks[0].resolved_model, "model-fast");
+        assert_eq!(plan.tasks[0].resolved_model, crate::llm::OPENROUTER_FREE_MODEL);
         assert_eq!(
             plan.tasks[1].model_route.as_deref(),
             Some("reviewer_strict")
         );
-        assert_eq!(plan.tasks[1].resolved_model, "model-reason");
+        assert_eq!(plan.tasks[1].resolved_model, crate::llm::OPENROUTER_FREE_MODEL);
         assert!(plan
             .tasks
             .iter()

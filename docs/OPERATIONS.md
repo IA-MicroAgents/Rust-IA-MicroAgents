@@ -1,4 +1,4 @@
-# Ferrum Operations
+# AI MicroAgents Operations
 
 ## Startup Checklist
 1. Copy `.env.example` to `.env`.
@@ -52,7 +52,7 @@
 ## Storage Operations
 - Postgres is the authoritative store in production.
 - Redis is disposable cache state; clear it safely during troubleshooting.
-- If Redis is unavailable, ferrum should still operate against Postgres, just with slower hot reads.
+- If Redis is unavailable, AI MicroAgents should still operate against Postgres, just with slower hot reads.
 - SQLite remains supported for local/offline mode.
 
 ## Health and Metrics
@@ -78,31 +78,31 @@ Main metrics:
   - replay event
   - toggle kill switch
 
-If auth token is configured, requests must include header `x-ferrum-dashboard-token`.
+If auth token is configured, requests must include header `x-ai-microagents-dashboard-token`.
 
 ## Backups and Recovery
 - Back up Postgres with normal physical or logical backups.
 - Redis does not replace backups; it is cache state.
-- If using SQLite local mode, stop the process before hot backup of `data/ferrum.db` (+ WAL/SHM).
+- If using SQLite local mode, stop the process before hot backup of `data/ai-microagents.db` (+ WAL/SHM).
 - Recovery flow:
   1. restore Postgres snapshot or local SQLite snapshot
   2. optionally flush Redis if cache contents are stale
   3. run `cargo run -- doctor`
-  4. replay critical events with `ferrum replay <event_id>` if needed
+  4. replay critical events with `ai-microagents replay <event_id>` if needed
 
 ## Troubleshooting
 - Invalid model routes: verify IDs in `IDENTITY.md` and rerun `doctor`.
 - No outbound sends: check kill switch/dry-run/outbound flags.
 - Skills not loading: run `skills lint`, inspect YAML frontmatter and schemas.
 - Identity reload rejected: malformed file; runtime keeps last-known-good.
-- Dashboard unauthorized: verify `x-ferrum-dashboard-token`.
+- Dashboard unauthorized: verify `x-ai-microagents-dashboard-token`.
 
 ## Deployment
 ### Docker
 ```bash
-docker build -f docker/Dockerfile -t ferrum:latest .
-docker run --env-file .env -p 8080:8080 ferrum:latest
+docker build -f docker/Dockerfile -t ai-microagents:latest .
+docker run --env-file .env -p 8080:8080 ai-microagents:latest
 ```
 
 ### systemd
-Use `docker/ferrum.service` as baseline. Keep `.env` outside repo, locked to operator-only permissions.
+Use `docker/ai-microagents.service` as baseline. Keep `.env` outside repo, locked to operator-only permissions.

@@ -9,7 +9,8 @@ pub fn is_authorized(headers: &HeaderMap, state: &SharedAppState) -> bool {
     }
 
     headers
-        .get("x-ferrum-dashboard-token")
+        .get("x-ai-microagents-dashboard-token")
+        .or_else(|| headers.get("x-ferrum-dashboard-token"))
         .and_then(|v| v.to_str().ok())
         .map(|provided| provided == configured)
         .unwrap_or(false)

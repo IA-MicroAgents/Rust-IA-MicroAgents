@@ -21,8 +21,9 @@ use crate::{
         },
         response_types::{DecisionRoute, OrchestrationDecision, ToolCall},
         ChatMessage, ChatMessagePart, LlmProvider, LlmRequest, ProviderError,
+        OPENROUTER_FREE_MODEL,
     },
-    memory::{DeterministicSummarizer, MemoryStore},
+    memory::{BrainMemory, DeterministicSummarizer, MemoryStore},
     orchestrator::{
         context::{ContextBuildRequest, ContextBuilder, TurnContext},
         prompt_compiler::{
@@ -41,7 +42,9 @@ use crate::{
     telemetry::{event_bus::EventBus, tracing_ids},
     usecase::{
         classify_analysis_complexity, detect_current_data_requirement, AnalysisComplexity,
-        CurrentDataIntent, CurrentDataRequirement, EvidenceBundle, EvidenceItem,
+        CaptureBrainMemoryRequest, CaptureBrainMemoryUseCase, CurrentDataIntent,
+        CurrentDataRequirement, EvidenceBundle, EvidenceItem, RetrieveBrainMemoryRequest,
+        RetrieveBrainMemoryUseCase,
     },
 };
 use tokio::sync::oneshot;
@@ -65,6 +68,8 @@ pub struct ProcessInboundEventUseCase {
     research: ResearchGateway,
     telegram: TelegramClient,
     summarizer: DeterministicSummarizer,
+    brain_capture: CaptureBrainMemoryUseCase,
+    brain_retrieval: RetrieveBrainMemoryUseCase,
     team: TeamManager,
     controls: SupervisorControls,
     events: EventBus,
@@ -84,13 +89,15 @@ impl ProcessInboundEventUseCase {
         events: EventBus,
     ) -> AppResult<Self> {
         let memory = MemoryStore::new(store.clone());
-        let context_builder = ContextBuilder::new(memory, registry.clone(), SkillSelector);
+        let context_builder = ContextBuilder::new(memory.clone(), registry.clone(), SkillSelector);
         let skill_runner = SkillRunner::new(
             registry,
             store.clone(),
             config.policy.http_skill_allowlist.clone(),
         )?;
         let research = ResearchGateway::new(skill_runner.clone());
+        let brain_capture = CaptureBrainMemoryUseCase::new();
+        let brain_retrieval = RetrieveBrainMemoryUseCase::new(memory.clone());
 
         Ok(Self {
             config,
@@ -102,6 +109,8 @@ impl ProcessInboundEventUseCase {
             research,
             telegram,
             summarizer: DeterministicSummarizer,
+            brain_capture,
+            brain_retrieval,
             team,
             controls,
             events,
@@ -128,18 +137,19 @@ impl ProcessInboundEventUseCase {
             preview = %truncate_for_log(&event.text, 120),
             "processing inbound event"
         );
-        counter!("ferrum_inbound_events_total", "channel" => event.channel.clone()).increment(1);
+        counter!("ai_microagents_inbound_events_total", "channel" => event.channel.clone())
+            .increment(1);
         let queue_wait_ms = event
             .queued_at
             .map(|queued_at| (Utc::now() - queued_at).num_milliseconds().max(0) as f64)
             .unwrap_or(0.0);
         if queue_wait_ms > 0.0 {
-            histogram!("ferrum_queue_wait_ms").record(queue_wait_ms);
+            histogram!("ai_microagents_queue_wait_ms").record(queue_wait_ms);
         }
 
         // Paso 2: deduplicar el evento para garantizar que el caso de uso sea idempotente.
         if !self.store.dedupe_processed_event(&event.event_id).await? {
-            counter!("ferrum_duplicate_events_total").increment(1);
+            counter!("ai_microagents_duplicate_events_total").increment(1);
             info!(event_id = %event.event_id, "duplicate event skipped");
             return Ok(TurnOutcome {
                 trace_id,
@@ -276,7 +286,17 @@ impl ProcessInboundEventUseCase {
                 event.text.clone()
             },
         );
-        histogram!("ferrum_turn_ingest_seconds").record(ingest_started.elapsed().as_secs_f64());
+        let prechecked_brain_memories = self
+            .precheck_brain_memories(
+                &identity,
+                conversation_id,
+                &event.user_id,
+                &resolved_user_text,
+                topic_shift_detected,
+            )
+            .await;
+        histogram!("ai_microagents_turn_ingest_seconds")
+            .record(ingest_started.elapsed().as_secs_f64());
 
         // Paso 6: preparar presupuesto y decidir si conviene planificar o responder directo.
         let mut budget = TurnBudget::from_identity(identity.budgets());
@@ -413,6 +433,7 @@ impl ProcessInboundEventUseCase {
                     route_hint.clone(),
                     &resolved_user_text,
                     &effective_prior_turns,
+                    &prechecked_brain_memories,
                 )
                 .await
             {
@@ -445,6 +466,7 @@ impl ProcessInboundEventUseCase {
                         .ensure_turn_context(
                             &mut shared_context,
                             conversation_id,
+                            &event.user_id,
                             &resolved_user_text,
                             &principal_permissions.allowed_skills,
                             &principal_permissions.denied_skills,
@@ -543,6 +565,7 @@ impl ProcessInboundEventUseCase {
                         .ensure_turn_context(
                             &mut shared_context,
                             conversation_id,
+                            &event.user_id,
                             &resolved_user_text,
                             &principal_permissions.allowed_skills,
                             &principal_permissions.denied_skills,
@@ -662,6 +685,7 @@ impl ProcessInboundEventUseCase {
                     .request_classifier(
                         &identity,
                         conversation_id,
+                        &prechecked_brain_memories,
                         &resolved_user_text,
                         &effective_prior_turns,
                         latest_summary.as_deref(),
@@ -681,9 +705,10 @@ impl ProcessInboundEventUseCase {
                         }
                     });
                 let classifier_elapsed = classifier_started.elapsed();
-                histogram!("ferrum_classifier_latency_seconds")
+                histogram!("ai_microagents_classifier_latency_seconds")
                     .record(classifier_elapsed.as_secs_f64());
-                histogram!("ferrum_classifier_ms").record(classifier_elapsed.as_millis() as f64);
+                histogram!("ai_microagents_classifier_ms")
+                    .record(classifier_elapsed.as_millis() as f64);
                 let _ = self.events.publish(
                     "supervisor_classifier",
                     json!({
@@ -708,6 +733,7 @@ impl ProcessInboundEventUseCase {
                                 classifier.route.clone(),
                                 &resolved_user_text,
                                 &effective_prior_turns,
+                                &prechecked_brain_memories,
                             )
                             .await
                         {
@@ -740,6 +766,7 @@ impl ProcessInboundEventUseCase {
                                     .ensure_turn_context(
                                         &mut shared_context,
                                         conversation_id,
+                                        &event.user_id,
                                         &resolved_user_text,
                                         &principal_permissions.allowed_skills,
                                         &principal_permissions.denied_skills,
@@ -783,6 +810,7 @@ impl ProcessInboundEventUseCase {
                             .ensure_turn_context(
                                 &mut shared_context,
                                 conversation_id,
+                                &event.user_id,
                                 &resolved_user_text,
                                 &principal_permissions.allowed_skills,
                                 &principal_permissions.denied_skills,
@@ -824,6 +852,7 @@ impl ProcessInboundEventUseCase {
                                     .ensure_turn_context(
                                         &mut shared_context,
                                         conversation_id,
+                                        &event.user_id,
                                         &resolved_user_text,
                                         &principal_permissions.allowed_skills,
                                         &principal_permissions.denied_skills,
@@ -857,6 +886,7 @@ impl ProcessInboundEventUseCase {
                             .ensure_turn_context(
                                 &mut shared_context,
                                 conversation_id,
+                                &event.user_id,
                                 &resolved_user_text,
                                 &principal_permissions.allowed_skills,
                                 &principal_permissions.denied_skills,
@@ -930,6 +960,7 @@ impl ProcessInboundEventUseCase {
                 self.ensure_turn_context(
                     &mut shared_context,
                     conversation_id,
+                    &event.user_id,
                     &resolved_user_text,
                     &principal_permissions.allowed_skills,
                     &principal_permissions.denied_skills,
@@ -1133,7 +1164,7 @@ impl ProcessInboundEventUseCase {
                 &execution_context,
             )
             .await;
-            histogram!("ferrum_integration_ms")
+            histogram!("ai_microagents_integration_ms")
                 .record(integration_started.elapsed().as_millis() as f64);
         } else if matches!(decision.route, DecisionRoute::ToolUse)
             && !decision.tool_calls.is_empty()
@@ -1206,9 +1237,9 @@ impl ProcessInboundEventUseCase {
                     duration_ms = skill_result.duration_ms,
                     "tool call completed"
                 );
-                counter!("ferrum_skill_calls_total", "ok" => skill_result.ok.to_string())
+                counter!("ai_microagents_skill_calls_total", "ok" => skill_result.ok.to_string())
                     .increment(1);
-                histogram!("ferrum_skill_latency_seconds")
+                histogram!("ai_microagents_skill_latency_seconds")
                     .record(skill_result.duration_ms as f64 / 1000.0);
                 tool_results.push(skill_result);
             }
@@ -1221,6 +1252,7 @@ impl ProcessInboundEventUseCase {
                         &trace_id,
                         &resolved_user_text,
                         &tool_results,
+                        &prechecked_brain_memories,
                     )
                     .await;
                 if let Ok((text, usage, model, latency_ms)) = synthesized {
@@ -1346,7 +1378,7 @@ impl ProcessInboundEventUseCase {
                         );
                     }
                     Err(err) => {
-                        counter!("ferrum_outbound_failures_total").increment(1);
+                        counter!("ai_microagents_outbound_failures_total").increment(1);
                         error!(
                             trace_id = %trace_id,
                             recipient = %event.user_id,
@@ -1373,8 +1405,8 @@ impl ProcessInboundEventUseCase {
             deferred_outbound_rows.push((reply.clone(), None, "suppressed".to_string()));
         }
         let outbound_elapsed = outbound_started.elapsed();
-        histogram!("ferrum_outbound_seconds").record(outbound_elapsed.as_secs_f64());
-        histogram!("ferrum_outbound_ms").record(outbound_elapsed.as_millis() as f64);
+        histogram!("ai_microagents_outbound_seconds").record(outbound_elapsed.as_secs_f64());
+        histogram!("ai_microagents_outbound_ms").record(outbound_elapsed.as_millis() as f64);
 
         if let Some(user_turn_content) = deferred_user_turn_content.as_deref() {
             self.store
@@ -1415,7 +1447,7 @@ impl ProcessInboundEventUseCase {
             }),
         );
 
-        counter!("ferrum_processed_turns_total", "route" => format!("{:?}", final_route))
+        counter!("ai_microagents_processed_turns_total", "route" => format!("{:?}", final_route))
             .increment(1);
         info!(
             trace_id = %trace_id,
@@ -1425,11 +1457,12 @@ impl ProcessInboundEventUseCase {
             "turn completed"
         );
         let turn_elapsed = turn_started.elapsed();
-        histogram!("ferrum_turn_total_seconds").record(turn_elapsed.as_secs_f64());
-        histogram!("ferrum_turn_total_ms").record(turn_elapsed.as_millis() as f64);
+        histogram!("ai_microagents_turn_total_seconds").record(turn_elapsed.as_secs_f64());
+        histogram!("ai_microagents_turn_total_ms").record(turn_elapsed.as_millis() as f64);
 
         let store = self.store.clone();
         let summarizer = self.summarizer.clone();
+        let brain_capture = self.brain_capture.clone();
         let event_id = event.event_id.clone();
         let event_channel = event.channel.clone();
         let event_user_id = event.user_id.clone();
@@ -1440,6 +1473,12 @@ impl ProcessInboundEventUseCase {
         let reply_for_finalize = reply.clone();
         let final_route_label = format!("{:?}", final_route);
         let deferred_outbound_rows = deferred_outbound_rows.clone();
+        let brain_enabled = identity.memory().brain_enabled();
+        let brain_auto_write_mode = identity.memory().auto_write_mode().to_string();
+        let brain_tool_name = tool_results
+            .iter()
+            .find(|result| result.ok)
+            .map(|result| result.skill_name.clone());
         tokio::spawn(async move {
             // Paso 11.1: cerrar el evento lo antes posible para liberar el turno visible del usuario.
             if let Err(err) = store.mark_inbound_processed(&event_id).await {
@@ -1473,8 +1512,9 @@ impl ProcessInboundEventUseCase {
                 }
             }
 
+            let mut persisted_user_turn_id = None;
             if let Some(user_turn_content) = deferred_user_turn_content.as_deref() {
-                if let Err(err) = store
+                match store
                     .append_turn(
                         conversation_id,
                         "user",
@@ -1485,15 +1525,16 @@ impl ProcessInboundEventUseCase {
                     )
                     .await
                 {
-                    warn!(
+                    Ok(turn_id) => persisted_user_turn_id = Some(turn_id),
+                    Err(err) => warn!(
                         trace_id = %trace_id_for_finalize,
                         error = %err,
                         "deferred user turn persist failed"
-                    );
+                    ),
                 }
             }
 
-            if let Err(err) = store
+            let persisted_assistant_turn_id = match store
                 .append_turn(
                     conversation_id,
                     "assistant",
@@ -1504,12 +1545,16 @@ impl ProcessInboundEventUseCase {
                 )
                 .await
             {
-                warn!(
-                    trace_id = %trace_id_for_finalize,
-                    error = %err,
-                    "deferred assistant turn persist failed"
-                );
-            }
+                Ok(turn_id) => Some(turn_id),
+                Err(err) => {
+                    warn!(
+                        trace_id = %trace_id_for_finalize,
+                        error = %err,
+                        "deferred assistant turn persist failed"
+                    );
+                    None
+                }
+            };
 
             if save_summaries && summarize_every_n_turns > 0 {
                 match store.count_turns(conversation_id).await {
@@ -1545,6 +1590,48 @@ impl ProcessInboundEventUseCase {
                         error = %err,
                         "deferred turn count failed"
                     ),
+                }
+            }
+
+            // Paso 11.3: extraer y persistir memoria estructurada sin bloquear la respuesta ya entregada.
+            if brain_enabled {
+                let recent_turns = match store.recent_turns(conversation_id, 8).await {
+                    Ok(turns) => turns,
+                    Err(err) => {
+                        warn!(
+                            trace_id = %trace_id_for_finalize,
+                            error = %err,
+                            "deferred brain context load failed"
+                        );
+                        Vec::new()
+                    }
+                };
+                let user_turn_for_brain = deferred_user_turn_content.as_deref().unwrap_or_default();
+                let candidates = brain_capture.execute(CaptureBrainMemoryRequest {
+                    enabled: brain_enabled,
+                    auto_write_mode: &brain_auto_write_mode,
+                    user_id: &event_user_id,
+                    conversation_id,
+                    channel: &event_channel,
+                    trace_id: &trace_id_for_finalize,
+                    user_text: user_turn_for_brain,
+                    assistant_reply: &reply_for_finalize,
+                    recent_turns: &recent_turns,
+                    source_turn_id: persisted_user_turn_id.or(persisted_assistant_turn_id),
+                    tool_name: brain_tool_name.as_deref(),
+                    url: None,
+                });
+                if !candidates.is_empty() {
+                    if let Err(err) = store
+                        .queue_brain_write(Some(&trace_id_for_finalize), &candidates)
+                        .await
+                    {
+                        warn!(
+                            trace_id = %trace_id_for_finalize,
+                            error = %err,
+                            "deferred brain write failed"
+                        );
+                    }
                 }
             }
         });
@@ -1628,15 +1715,18 @@ impl ProcessInboundEventUseCase {
             }),
         );
         let response = match self
-            .llm
-            .chat_completion(LlmRequest {
-                model: selection.resolved_model.clone(),
-                messages,
-                max_output_tokens: identity.frontmatter.budgets.max_output_tokens,
-                temperature: 0.0,
-                require_json: true,
-                timeout_ms: identity.frontmatter.budgets.timeout_ms,
-            })
+            .chat_completion_with_route_retry(
+                identity,
+                conversation_id,
+                trace_id,
+                "planner",
+                &selection,
+                &messages,
+                identity.frontmatter.budgets.max_output_tokens,
+                0.0,
+                true,
+                identity.frontmatter.budgets.timeout_ms,
+            )
             .await
         {
             Ok(response) => response,
@@ -1668,16 +1758,58 @@ impl ProcessInboundEventUseCase {
                 response.latency_ms,
             )
             .await;
-        histogram!("ferrum_model_latency_seconds", "model" => response.model.clone())
+        histogram!("ai_microagents_model_latency_seconds", "model" => response.model.clone())
             .record(response.latency_ms as f64 / 1000.0);
 
-        let contract = parse_or_repair_execution_plan(
+        let mut contract = parse_or_repair_execution_plan(
             self.llm.as_ref(),
-            &selection.resolved_model,
+            &response.model,
             &response.content,
             identity.frontmatter.budgets.timeout_ms,
         )
         .await?;
+        if plan_contract_looks_like_parser_fallback(&contract) {
+            if let Some(retry_model) =
+                retry_model_for_route(identity, &selection.route_key, &response.model)
+            {
+                match self
+                    .retry_chat_completion(
+                        conversation_id,
+                        trace_id,
+                        "planner_retry",
+                        &retry_model,
+                        &messages,
+                        identity.frontmatter.budgets.max_output_tokens,
+                        0.0,
+                        true,
+                        identity.frontmatter.budgets.timeout_ms,
+                    )
+                    .await
+                {
+                    Ok(retry_response) => {
+                        let _ = self
+                            .store
+                            .insert_model_usage(
+                                trace_id,
+                                &retry_response.model,
+                                retry_response.usage.prompt_tokens,
+                                retry_response.usage.completion_tokens,
+                                retry_response.usage.estimated_cost_usd,
+                                retry_response.latency_ms,
+                            )
+                            .await;
+                        contract = parse_or_repair_execution_plan(
+                            self.llm.as_ref(),
+                            &retry_response.model,
+                            &retry_response.content,
+                            identity.frontmatter.budgets.timeout_ms,
+                        )
+                        .await?;
+                    }
+                    Err(err) => warn!(error = %err, "planner retry after parser fallback failed"),
+                }
+            }
+        }
         let plan = build_plan_from_contract(
             conversation_id,
             user_text,
@@ -1688,7 +1820,8 @@ impl ProcessInboundEventUseCase {
             team_settings,
             &self.llm.model_catalog(),
         );
-        histogram!("ferrum_planning_seconds").record(planning_started.elapsed().as_secs_f64());
+        histogram!("ai_microagents_planning_seconds")
+            .record(planning_started.elapsed().as_secs_f64());
         Ok((plan, response.usage))
     }
 
@@ -1696,12 +1829,19 @@ impl ProcessInboundEventUseCase {
         &self,
         identity: &crate::identity::compiler::SystemIdentity,
         conversation_id: i64,
+        brain_memories: &[BrainMemory],
         user_text: &str,
         prior_turns: &[crate::storage::ConversationTurn],
         latest_summary: Option<&str>,
         trace_id: &str,
     ) -> AppResult<OrchestrationDecision> {
-        let messages = compile_classifier_prompt(identity, user_text, prior_turns, latest_summary);
+        let messages = compile_classifier_prompt(
+            identity,
+            user_text,
+            prior_turns,
+            latest_summary,
+            brain_memories,
+        );
         let selection = self.resolve_model_selection_for_route(
             identity,
             "router_fast",
@@ -1732,17 +1872,19 @@ impl ProcessInboundEventUseCase {
         );
 
         let response = self
-            .llm
-            .chat_completion(LlmRequest {
-                model: selection.resolved_model.clone(),
-                messages,
-                max_output_tokens: 180,
-                temperature: 0.0,
-                require_json: true,
-                timeout_ms: 2_000,
-            })
-            .await
-            .map_err(map_provider_error)?;
+            .chat_completion_with_route_retry(
+                identity,
+                conversation_id,
+                trace_id,
+                "classifier",
+                &selection,
+                &messages,
+                180,
+                0.0,
+                true,
+                2_000,
+            )
+            .await?;
 
         let _ = self
             .store
@@ -1756,13 +1898,54 @@ impl ProcessInboundEventUseCase {
             )
             .await;
 
-        parse_or_repair_decision(
-            self.llm.as_ref(),
-            &selection.resolved_model,
-            &response.content,
-            2_000,
-        )
-        .await
+        let mut decision =
+            parse_or_repair_decision(self.llm.as_ref(), &response.model, &response.content, 2_000)
+                .await?;
+        if decision_is_internal_parse_fallback(&decision) {
+            if let Some(retry_model) =
+                retry_model_for_route(identity, &selection.route_key, &response.model)
+            {
+                match self
+                    .retry_chat_completion(
+                        conversation_id,
+                        trace_id,
+                        "classifier_retry",
+                        &retry_model,
+                        &messages,
+                        180,
+                        0.0,
+                        true,
+                        2_000,
+                    )
+                    .await
+                {
+                    Ok(retry_response) => {
+                        let _ = self
+                            .store
+                            .insert_model_usage(
+                                trace_id,
+                                &retry_response.model,
+                                retry_response.usage.prompt_tokens,
+                                retry_response.usage.completion_tokens,
+                                retry_response.usage.estimated_cost_usd,
+                                retry_response.latency_ms,
+                            )
+                            .await;
+                        decision = parse_or_repair_decision(
+                            self.llm.as_ref(),
+                            &retry_response.model,
+                            &retry_response.content,
+                            2_000,
+                        )
+                        .await?;
+                    }
+                    Err(err) => {
+                        warn!(error = %err, "classifier retry after parser fallback failed")
+                    }
+                }
+            }
+        }
+        Ok(decision)
     }
 
     async fn request_decision(
@@ -1813,17 +1996,19 @@ impl ProcessInboundEventUseCase {
         );
 
         let response = self
-            .llm
-            .chat_completion(LlmRequest {
-                model: selection.resolved_model.clone(),
-                messages,
-                max_output_tokens: identity.frontmatter.budgets.max_output_tokens,
-                temperature: 0.1,
-                require_json: true,
-                timeout_ms: identity.frontmatter.budgets.timeout_ms,
-            })
-            .await
-            .map_err(map_provider_error)?;
+            .chat_completion_with_route_retry(
+                identity,
+                conversation_id,
+                trace_id,
+                "decision",
+                &selection,
+                &messages,
+                identity.frontmatter.budgets.max_output_tokens,
+                0.1,
+                true,
+                identity.frontmatter.budgets.timeout_ms,
+            )
+            .await?;
 
         let _ = self
             .store
@@ -1836,16 +2021,72 @@ impl ProcessInboundEventUseCase {
                 response.latency_ms,
             )
             .await;
-        histogram!("ferrum_model_latency_seconds", "model" => response.model.clone())
+        histogram!("ai_microagents_model_latency_seconds", "model" => response.model.clone())
             .record(response.latency_ms as f64 / 1000.0);
 
-        parse_or_repair_decision(
+        let mut decision = parse_or_repair_decision(
             self.llm.as_ref(),
-            &selection.resolved_model,
+            &response.model,
             &response.content,
             identity.frontmatter.budgets.timeout_ms,
         )
-        .await
+        .await?;
+        if decision_is_internal_parse_fallback(&decision) {
+            if let Some(retry_model) =
+                retry_model_for_route(identity, &selection.route_key, &response.model)
+            {
+                match self
+                    .retry_chat_completion(
+                        conversation_id,
+                        trace_id,
+                        "decision_retry",
+                        &retry_model,
+                        &messages,
+                        identity.frontmatter.budgets.max_output_tokens,
+                        0.1,
+                        true,
+                        identity.frontmatter.budgets.timeout_ms,
+                    )
+                    .await
+                {
+                    Ok(retry_response) => {
+                        let _ = self
+                            .store
+                            .insert_model_usage(
+                                trace_id,
+                                &retry_response.model,
+                                retry_response.usage.prompt_tokens,
+                                retry_response.usage.completion_tokens,
+                                retry_response.usage.estimated_cost_usd,
+                                retry_response.latency_ms,
+                            )
+                            .await;
+                        decision = parse_or_repair_decision(
+                            self.llm.as_ref(),
+                            &retry_response.model,
+                            &retry_response.content,
+                            identity.frontmatter.budgets.timeout_ms,
+                        )
+                        .await?;
+                    }
+                    Err(err) => warn!(error = %err, "decision retry after parser fallback failed"),
+                }
+            }
+        }
+        if decision_is_internal_parse_fallback(&decision) {
+            if let Some(reply) = contextual_follow_up_fallback(user_text, context) {
+                return Ok(OrchestrationDecision {
+                    route: DecisionRoute::AskClarification,
+                    assistant_reply: reply,
+                    tool_calls: Vec::new(),
+                    memory_writes: Vec::new(),
+                    should_summarize: false,
+                    confidence: 0.2,
+                    safe_to_send: true,
+                });
+            }
+        }
+        Ok(decision)
     }
 
     async fn generate_fast_reply(
@@ -1856,8 +2097,10 @@ impl ProcessInboundEventUseCase {
         route: DecisionRoute,
         user_text: &str,
         prior_turns: &[crate::storage::ConversationTurn],
+        brain_memories: &[BrainMemory],
     ) -> AppResult<(String, crate::llm::Usage, String, u64)> {
-        let messages = compile_fast_reply_prompt(identity, &route, user_text, prior_turns);
+        let messages =
+            compile_fast_reply_prompt(identity, &route, user_text, prior_turns, brain_memories);
         let selection = self.resolve_model_selection_for_route(
             identity,
             "fast_text",
@@ -1890,17 +2133,19 @@ impl ProcessInboundEventUseCase {
             }),
         );
         let response = self
-            .llm
-            .chat_completion(LlmRequest {
-                model: selection.resolved_model,
-                messages,
-                max_output_tokens: identity.frontmatter.budgets.max_output_tokens.min(280),
-                temperature: 0.2,
-                require_json: false,
-                timeout_ms: identity.frontmatter.budgets.timeout_ms.min(4_000),
-            })
-            .await
-            .map_err(map_provider_error)?;
+            .chat_completion_with_route_retry(
+                identity,
+                conversation_id,
+                trace_id,
+                "fast_reply",
+                &selection,
+                &messages,
+                identity.frontmatter.budgets.max_output_tokens.min(280),
+                0.2,
+                false,
+                identity.frontmatter.budgets.timeout_ms.min(4_000),
+            )
+            .await?;
 
         Ok((
             response.content,
@@ -1917,12 +2162,14 @@ impl ProcessInboundEventUseCase {
         trace_id: &str,
         user_text: &str,
         tool_results: &[crate::skills::SkillResult],
+        brain_memories: &[BrainMemory],
     ) -> AppResult<(String, crate::llm::Usage, String, u64)> {
         let messages = compile_final_answer_prompt(
             identity,
             user_text,
             &serde_json::to_string(tool_results)
                 .map_err(|e| AppError::Internal(format!("serialize tool results failed: {e}")))?,
+            brain_memories,
         );
 
         let selection = self.resolve_model_selection_for_route(
@@ -1953,17 +2200,19 @@ impl ProcessInboundEventUseCase {
             }),
         );
         let response = self
-            .llm
-            .chat_completion(LlmRequest {
-                model: selection.resolved_model,
-                messages,
-                max_output_tokens: identity.frontmatter.budgets.max_output_tokens,
-                temperature: 0.2,
-                require_json: false,
-                timeout_ms: identity.frontmatter.budgets.timeout_ms,
-            })
-            .await
-            .map_err(map_provider_error)?;
+            .chat_completion_with_route_retry(
+                identity,
+                conversation_id,
+                trace_id,
+                "tool_synthesis",
+                &selection,
+                &messages,
+                identity.frontmatter.budgets.max_output_tokens,
+                0.2,
+                false,
+                identity.frontmatter.budgets.timeout_ms,
+            )
+            .await?;
 
         Ok((
             response.content,
@@ -2010,6 +2259,103 @@ impl ProcessInboundEventUseCase {
                 escalation_tier: settings.max_escalation_tier,
             },
         )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn chat_completion_with_route_retry(
+        &self,
+        identity: &crate::identity::compiler::SystemIdentity,
+        conversation_id: i64,
+        trace_id: &str,
+        phase: &str,
+        selection: &crate::llm::broker::ModelSelection,
+        messages: &[ChatMessage],
+        max_output_tokens: u32,
+        temperature: f32,
+        require_json: bool,
+        timeout_ms: u64,
+    ) -> AppResult<crate::llm::LlmResponse> {
+        match self
+            .llm
+            .chat_completion(LlmRequest {
+                model: selection.resolved_model.clone(),
+                messages: messages.to_vec(),
+                max_output_tokens,
+                temperature,
+                require_json,
+                timeout_ms,
+            })
+            .await
+        {
+            Ok(response) => Ok(response),
+            Err(err) => {
+                let mapped = map_provider_error(err);
+                if !should_retry_provider_error(&mapped) {
+                    return Err(mapped);
+                }
+
+                let Some(retry_model) = retry_model_for_route(
+                    identity,
+                    &selection.route_key,
+                    &selection.resolved_model,
+                ) else {
+                    return Err(mapped);
+                };
+                self.retry_chat_completion(
+                    conversation_id,
+                    trace_id,
+                    phase,
+                    &retry_model,
+                    messages,
+                    max_output_tokens,
+                    temperature,
+                    require_json,
+                    timeout_ms,
+                )
+                .await
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn retry_chat_completion(
+        &self,
+        conversation_id: i64,
+        trace_id: &str,
+        phase: &str,
+        retry_model: &str,
+        messages: &[ChatMessage],
+        max_output_tokens: u32,
+        temperature: f32,
+        require_json: bool,
+        timeout_ms: u64,
+    ) -> AppResult<crate::llm::LlmResponse> {
+        warn!(
+            trace_id = %trace_id,
+            phase,
+            retry_model = %retry_model,
+            "retrying model call with alternate route model"
+        );
+        let _ = self.events.publish(
+            "supervisor_model_retry",
+            json!({
+                "conversation_id": conversation_id,
+                "trace_id": trace_id,
+                "phase": phase,
+                "retry_model": retry_model,
+            }),
+        );
+        self.llm
+            .chat_completion(LlmRequest {
+                model: retry_model.to_string(),
+                messages: messages.to_vec(),
+                max_output_tokens,
+                temperature,
+                require_json,
+                timeout_ms,
+            })
+            .await
+            .map_err(map_provider_error)
     }
 
     async fn collect_live_evidence(
@@ -2101,10 +2447,51 @@ impl ProcessInboundEventUseCase {
         })
     }
 
+    async fn precheck_brain_memories(
+        &self,
+        identity: &crate::identity::compiler::SystemIdentity,
+        conversation_id: i64,
+        user_id: &str,
+        user_text: &str,
+        ignore_conversation_scope: bool,
+    ) -> Vec<BrainMemory> {
+        if !identity.memory().brain_enabled() || !identity.memory().precheck_each_turn() {
+            return Vec::new();
+        }
+
+        match self
+            .brain_retrieval
+            .execute(RetrieveBrainMemoryRequest {
+                enabled: true,
+                conversation_id: if ignore_conversation_scope {
+                    None
+                } else {
+                    Some(conversation_id)
+                },
+                user_id: Some(user_id),
+                query: user_text,
+                conversation_limit: if ignore_conversation_scope {
+                    0
+                } else {
+                    identity.memory().conversation_limit()
+                },
+                user_limit: identity.memory().user_limit(),
+            })
+            .await
+        {
+            Ok(memories) => memories,
+            Err(err) => {
+                warn!(error = %err, "brain precheck failed; continuing without structured memory");
+                Vec::new()
+            }
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     async fn load_turn_context(
         &self,
         conversation_id: i64,
+        user_id: &str,
         trace_id: &str,
         user_text: &str,
         allowed_skills: &[String],
@@ -2116,10 +2503,11 @@ impl ProcessInboundEventUseCase {
         let hints = collect_hints(conversation_id, &self.store).await;
         let settings = self.team.runtime_settings();
         let identity = self.identity.get();
-        let locale = identity.frontmatter.locale;
+        let locale = identity.frontmatter.locale.clone();
         self.context_builder
             .build(ContextBuildRequest {
                 conversation_id,
+                user_id,
                 trace_id,
                 user_text,
                 hints: &hints,
@@ -2129,6 +2517,10 @@ impl ProcessInboundEventUseCase {
                 performance_policy,
                 max_escalation_tier: settings.max_escalation_tier,
                 analysis_complexity,
+                brain_enabled: identity.memory().brain_enabled(),
+                precheck_each_turn: identity.memory().precheck_each_turn(),
+                brain_conversation_limit: identity.memory().conversation_limit(),
+                brain_user_limit: identity.memory().user_limit(),
                 locale: locale.as_str(),
             })
             .await
@@ -2139,6 +2531,7 @@ impl ProcessInboundEventUseCase {
         &self,
         cached: &mut Option<TurnContext>,
         conversation_id: i64,
+        user_id: &str,
         user_text: &str,
         allowed_skills: &[String],
         denied_skills: &[String],
@@ -2166,6 +2559,7 @@ impl ProcessInboundEventUseCase {
         let context = self
             .load_turn_context(
                 conversation_id,
+                user_id,
                 trace_id,
                 user_text,
                 allowed_skills,
@@ -2177,7 +2571,8 @@ impl ProcessInboundEventUseCase {
             .await?;
         let mut context = context;
         context.current_evidence = current_evidence.cloned();
-        histogram!("ferrum_context_load_ms").record(context_started.elapsed().as_millis() as f64);
+        histogram!("ai_microagents_context_load_ms")
+            .record(context_started.elapsed().as_millis() as f64);
         *cached = Some(context.clone());
         Ok(context)
     }
@@ -2527,6 +2922,121 @@ fn map_provider_error(err: ProviderError) -> AppError {
     AppError::Provider(err.to_string())
 }
 
+fn should_retry_provider_error(err: &AppError) -> bool {
+    match err {
+        AppError::Provider(message) => {
+            let normalized = message.to_ascii_lowercase();
+            normalized.contains("malformed upstream response")
+                || normalized.contains("upstream failure")
+                || normalized.contains("network")
+                || normalized.contains("timeout")
+                || normalized.contains("rate limit")
+        }
+        AppError::Timeout(_) | AppError::Http(_) => true,
+        _ => false,
+    }
+}
+
+fn retry_model_for_route(
+    _identity: &crate::identity::compiler::SystemIdentity,
+    _route_key: &str,
+    _attempted_model: &str,
+) -> Option<String> {
+    // Paso 1: mantener el runtime fijado al route interno de OpenRouter y evitar
+    // escapes silenciosos hacia otros modelos durante retries de parser o proveedor.
+    let _ = OPENROUTER_FREE_MODEL;
+    None
+}
+
+fn decision_is_internal_parse_fallback(decision: &OrchestrationDecision) -> bool {
+    matches!(decision.route, DecisionRoute::AskClarification)
+        && decision.confidence <= 0.11
+        && decision
+            .assistant_reply
+            .to_ascii_lowercase()
+            .contains("internal parsing issue")
+}
+
+fn plan_contract_looks_like_parser_fallback(
+    contract: &crate::llm::response_types::ExecutionPlanContract,
+) -> bool {
+    contract.tasks.is_empty()
+        && contract
+            .assumptions
+            .iter()
+            .any(|assumption| assumption.contains("planner repair failed"))
+}
+
+fn contextual_follow_up_fallback(user_text: &str, context: &TurnContext) -> Option<String> {
+    if !looks_like_follow_up(user_text) {
+        return None;
+    }
+
+    let entities = recent_context_entities(context);
+    let entities_block = if entities.is_empty() {
+        "el tema anterior".to_string()
+    } else if entities.len() == 1 {
+        entities[0].clone()
+    } else {
+        format!(
+            "{} y {}",
+            entities[..entities.len() - 1].join(", "),
+            entities[entities.len() - 1]
+        )
+    };
+
+    Some(format!(
+        "Tomo que sigues sobre {entities_block}. Si quieres, continúo esa comparación sin reiniciar y la bajo por criterios concretos como precio, autonomía, rendimiento, espacio o software."
+    ))
+}
+
+fn recent_context_entities(context: &TurnContext) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    let mut entities = Vec::new();
+
+    for token in context
+        .brain_memories
+        .iter()
+        .flat_map(|memory| [memory.subject.clone(), memory.what_value.clone()])
+        .chain(context.recent_turns.iter().map(|turn| turn.content.clone()))
+        .flat_map(|content| extract_named_tokens(&content))
+    {
+        let normalized = token.to_ascii_lowercase();
+        if normalized.len() < 3 || !seen.insert(normalized) {
+            continue;
+        }
+        entities.push(token);
+        if entities.len() >= 3 {
+            break;
+        }
+    }
+
+    entities
+}
+
+fn extract_named_tokens(text: &str) -> Vec<String> {
+    text.split_whitespace()
+        .filter_map(|raw| {
+            let cleaned = raw
+                .trim_matches(|ch: char| !ch.is_alphanumeric())
+                .trim()
+                .to_string();
+            if cleaned.len() < 2 {
+                return None;
+            }
+            let is_named = cleaned.chars().any(|ch| ch.is_uppercase())
+                || cleaned.chars().all(|ch| ch.is_ascii_uppercase());
+            if !is_named {
+                return None;
+            }
+            match cleaned.as_str() {
+                "User" | "Assistant" | "Recent" | "Latest" | "Relevant" => None,
+                _ => Some(cleaned),
+            }
+        })
+        .collect()
+}
+
 fn effective_turn_performance_policy(
     base: &PerformancePolicy,
     analysis_complexity: &AnalysisComplexity,
@@ -2626,7 +3136,9 @@ fn fast_path_decision(
         let summary = capability_summary(permissions);
         return Some((
             DecisionRoute::DirectReply,
-            format!("Hola. Soy Ferrum. {summary} Dime la tarea concreta y la tomo desde ahi."),
+            format!(
+                "Hola. Soy AI MicroAgents. {summary} Dime la tarea concreta y la tomo desde ahi."
+            ),
             "greeting",
         ));
     }
@@ -3262,6 +3774,8 @@ fn looks_like_follow_up(user_text: &str) -> bool {
         "esta persona",
         "no no",
         "pero",
+        "sus autos",
+        "sus modelos",
         "los 3",
         "las 3",
         "que me pasaste",
@@ -3275,6 +3789,19 @@ fn looks_like_follow_up(user_text: &str) -> bool {
     .iter()
     .any(|marker| normalized == *marker || normalized.starts_with(&format!("{marker} ")));
     if explicit_markers {
+        return true;
+    }
+
+    let possessive_follow_up = [
+        "compara sus",
+        "compare their",
+        "sus autos",
+        "sus modelos",
+        "sus opciones",
+    ]
+    .iter()
+    .any(|marker| normalized.starts_with(marker) || normalized.contains(marker));
+    if possessive_follow_up {
         return true;
     }
 
@@ -3385,13 +3912,20 @@ async fn collect_hints(conversation_id: i64, store: &Store) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use crate::identity::schema::IdentityPermissions;
     use crate::llm::response_types::DecisionRoute;
+    use crate::memory::{
+        BrainMemory, BrainMemoryKind, BrainMemoryProvenance, BrainMemoryStatus, BrainScopeKind,
+    };
+    use crate::orchestrator::context::TurnContext;
     use crate::team::config::PerformancePolicy;
 
     use super::{
-        capability_summary, expand_follow_up_text, fast_path_decision, looks_like_follow_up,
-        planning_decision,
+        capability_summary, contextual_follow_up_fallback, decision_is_internal_parse_fallback,
+        expand_follow_up_text, fast_path_decision, looks_like_follow_up, planning_decision,
+        retry_model_for_route,
     };
 
     fn permissions() -> IdentityPermissions {
@@ -3411,7 +3945,7 @@ mod tests {
     fn fast_path_handles_greeting() {
         let decision = fast_path_decision("Hola", &permissions()).expect("fast path");
         assert_eq!(decision.0, DecisionRoute::DirectReply);
-        assert!(decision.1.contains("Ferrum"));
+        assert!(decision.1.contains("AI MicroAgents"));
     }
 
     #[test]
@@ -3511,5 +4045,143 @@ mod tests {
     #[test]
     fn short_reference_questions_count_as_follow_ups() {
         assert!(looks_like_follow_up("¿Cuál es el más divertido?"));
+    }
+
+    #[test]
+    fn contextual_follow_up_fallback_mentions_recent_entities() {
+        let context = TurnContext {
+            conversation_id: 1,
+            trace_id: "trace".to_string(),
+            recent_turns: vec![
+                crate::storage::ConversationTurn {
+                    role: "user".to_string(),
+                    content: "Hazme una comparacion entre Tesla y BYD".to_string(),
+                    created_at: Utc::now(),
+                },
+                crate::storage::ConversationTurn {
+                    role: "assistant".to_string(),
+                    content: "Tesla destaca por software y BYD por integracion vertical."
+                        .to_string(),
+                    created_at: Utc::now(),
+                },
+            ],
+            latest_summary: None,
+            brain_memories: vec![BrainMemory {
+                id: 1,
+                scope_kind: BrainScopeKind::Conversation,
+                user_id: Some("u1".to_string()),
+                conversation_id: Some(1),
+                memory_kind: BrainMemoryKind::Goal,
+                memory_key: "goal.compare_tesla_byd".to_string(),
+                subject: "compare_tesla_byd".to_string(),
+                what_value: "Comparar Tesla y BYD".to_string(),
+                why_value: None,
+                where_context: None,
+                learned_value: None,
+                provenance: BrainMemoryProvenance::default(),
+                confidence: 0.8,
+                status: BrainMemoryStatus::Active,
+                superseded_by: None,
+                source_turn_id: Some(1),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            }],
+            memories: vec![],
+            working_set: crate::usecase::ConversationWorkingSet::default(),
+            current_evidence: None,
+            selected_skills: vec![],
+            performance_policy: crate::team::config::PerformancePolicy::BalancedFast,
+            max_escalation_tier: crate::team::config::EscalationTier::Standard,
+            analysis_complexity: crate::usecase::AnalysisComplexity::Simple,
+        };
+
+        let fallback = contextual_follow_up_fallback("Compara sus autos mas tops", &context)
+            .expect("fallback");
+        assert!(fallback.contains("Tesla"));
+        assert!(fallback.contains("BYD"));
+    }
+
+    #[test]
+    fn parser_safe_fallback_is_detected() {
+        let decision = crate::llm::response_types::OrchestrationDecision::safe_fallback(
+            "I hit an internal parsing issue. Can you rephrase in one sentence?",
+        );
+        assert!(decision_is_internal_parse_fallback(&decision));
+    }
+
+    #[test]
+    fn retry_model_is_disabled_when_runtime_is_forced_to_openrouter_free() {
+        let identity = crate::identity::compiler::SystemIdentity {
+            frontmatter: crate::identity::schema::IdentityFrontmatter {
+                id: "ai-microagents".to_string(),
+                display_name: "AI MicroAgents".to_string(),
+                description: "test".to_string(),
+                locale: "es-UY".to_string(),
+                timezone: "UTC".to_string(),
+                model_routes: crate::identity::schema::ModelRoutes {
+                    fast: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    reasoning: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    tool_use: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    vision: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    reviewer: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    planner: crate::llm::OPENROUTER_FREE_MODEL.to_string(),
+                    router_fast: None,
+                    fast_text: None,
+                    reviewer_fast: None,
+                    reviewer_strict: None,
+                    integrator_complex: None,
+                    vision_understand: None,
+                    audio_transcribe: None,
+                    image_generate: None,
+                    fallback: vec![crate::llm::OPENROUTER_FREE_MODEL.to_string()],
+                },
+                budgets: crate::identity::schema::IdentityBudgets {
+                    max_steps: 3,
+                    max_turn_cost_usd: 1.0,
+                    max_input_tokens: 1000,
+                    max_output_tokens: 500,
+                    max_tool_calls: 2,
+                    timeout_ms: 10_000,
+                },
+                memory: crate::identity::schema::IdentityMemory {
+                    save_facts: true,
+                    save_summaries: true,
+                    summarize_every_n_turns: 4,
+                    brain_enabled: true,
+                    precheck_each_turn: true,
+                    auto_write_mode: "aggressive".to_string(),
+                    conversation_limit: 4,
+                    user_limit: 4,
+                },
+                permissions: permissions(),
+                channels: crate::identity::schema::IdentityChannels {
+                    telegram: crate::identity::schema::TelegramIdentityChannel {
+                        enabled: true,
+                        max_reply_chars: 3500,
+                        style_overrides: "concise".to_string(),
+                    },
+                },
+            },
+            sections: crate::identity::compiler::CompiledIdentitySections {
+                mission: String::new(),
+                persona: String::new(),
+                tone: String::new(),
+                hard_rules: String::new(),
+                do_not_do: String::new(),
+                escalation: String::new(),
+                memory_preferences: String::new(),
+                channel_notes: String::new(),
+                planning_principles: String::new(),
+                review_standards: String::new(),
+            },
+            compiled_system_prompt: String::new(),
+        };
+
+        let retry = retry_model_for_route(
+            &identity,
+            "fast_text",
+            "nvidia/nemotron-3-nano-30b-a3b:free",
+        );
+        assert!(retry.is_none());
     }
 }

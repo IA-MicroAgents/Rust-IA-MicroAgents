@@ -1,5 +1,5 @@
+use ai_microagents::{app, cli::Cli, telemetry::logging};
 use clap::{CommandFactory, Parser};
-use ferrum::{app, cli::Cli, telemetry::logging};
 
 #[tokio::main]
 async fn main() {

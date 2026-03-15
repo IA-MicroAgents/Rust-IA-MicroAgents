@@ -1,227 +1,244 @@
-# ferrum
+<p align="center">
+  <img src="docs/assets/ai-microagents-logo.svg" alt="AI MicroAgents logo" width="820" />
+</p>
 
-`ferrum` is a production-grade Rust runtime for AI orchestration with OpenRouter, bounded supervisor-led task execution, and a live operator dashboard. The operator path is Telegram Bot API only.
+<h1 align="center">AI MicroAgents</h1>
 
-## Highlights
-- Supervisor-led orchestration with bounded worker subagents.
-- Planning as DAG (`plan -> tasks -> dependencies -> review -> integration`).
-- Parallel task execution with Tokio semaphores.
-- Identity as code via `IDENTITY.md` (hot reload, last-known-good fallback).
-- Skills as code via `skills/<skill>/SKILL.md` (hot reload, schema/permission enforcement).
-- Telegram Bot API support with official long polling and outbound `sendMessage`.
-- Postgres as primary durable store for events, turns, plans, tasks, artifacts, reviews, reminders.
-- Redis as hot cache for dashboard reads, plan/task snapshots, recent turns, summaries, and memory retrieval.
-- Real-time dashboard + SSE event stream from Rust (no Node build).
-- Safety controls: per-turn/per-task budgets, kill switch, retries, timeout, redaction.
+<p align="center">
+  Telegram-first, evidence-aware, multi-agent orchestration in Rust.
+</p>
+
+<p align="center">
+  <strong>Supervisor-led</strong> • <strong>Evidence-first</strong> • <strong>Production-aware</strong> • <strong>Operator-friendly</strong>
+</p>
+
+## What It Is
+AI MicroAgents is a Rust runtime for orchestrating AI work through a bounded supervisor, persistent and ephemeral subagents, evidence-aware planning, and a live dashboard.
+
+The system is optimized for:
+- Telegram-first operation
+- controlled cost and latency
+- explicit planning and review loops
+- strong observability
+- contributor-friendly architecture based on `in / usecase / out`
+
+## Why It Exists
+Most agent systems are either:
+- too opaque to operate safely,
+- too generic to shape for real work,
+- or too fragile once they touch real channels, memory, storage, and tools.
+
+AI MicroAgents takes the opposite approach:
+- orchestration is explicit,
+- business logic is isolated in use cases,
+- storage is durable,
+- hot-path latency is protected,
+- and current-data questions are grounded in external evidence instead of pure model priors.
+
+## Core Capabilities
+- Supervisor-led orchestration with bounded subagent delegation
+- DAG-based planning with review and integration phases
+- Dynamic model selection per task through the broker
+- Telegram inbound/outbound support with multimodal handling
+- Postgres as source of truth
+- Redis for hot cache and secondary async work
+- Redis Streams + outbox for non-blocking side-effects
+- Live dashboard with Flow, Events, Config, and operational state
+- Evidence-first handling for current-data and URL-based questions
+- Conversation memory with recent turns, summaries, facts, and working set
+
+## Architecture
+All new Rust work follows three layers:
+- `src/in`: adapters for external inputs such as CLI, HTTP, Telegram, polling, and webhooks
+- `src/usecase`: business flows and orchestration logic
+- `src/out`: adapters for Postgres, Redis, OpenRouter, Telegram outbound, jobs, and external integrations
+
+Business logic belongs in `usecase`.
+
+```mermaid
+flowchart LR
+    A[Telegram / CLI / HTTP] --> B[src/in]
+    B --> C[src/usecase]
+    C --> D[src/out]
+    D --> E[Postgres]
+    D --> F[Redis]
+    D --> G[OpenRouter]
+    D --> H[Telegram API]
+```
+
+## Execution Model
+A typical turn goes through these stages:
+1. `ingest`
+2. `context_load`
+3. `classify`
+4. `plan_if_needed`
+5. `execute`
+6. `integrate`
+7. `deliver`
+
+Current-data questions add an evidence stage before synthesis:
+1. detect that live data is required
+2. fetch evidence from allowed sources
+3. build an evidence bundle
+4. plan or synthesize only after evidence exists
+
+## Repository Map
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/in](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/in)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/usecase](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/usecase)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/out](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/out)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/orchestrator](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/orchestrator)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/planner](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/planner)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/team](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/team)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/storage](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/storage)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/telemetry](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/src/telemetry)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/templates](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/templates)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs)
 
 ## Quickstart
-1. `cp .env.example .env`
-2. Start Postgres and Redis locally or point the env vars at existing instances.
-3. Fill `.env` with:
-   - `OPENROUTER_API_KEY`
-   - `TELEGRAM_BOT_TOKEN`
-   - optional `TELEGRAM_BOT_USERNAME`
-4. Create a Telegram bot with `@BotFather` and copy the token into `TELEGRAM_BOT_TOKEN`.
-5. Validate configuration:
-   - `cargo run -- doctor`
-6. Run runtime:
-   - `cargo run -- run`
-7. Open dashboard:
-   - `http://localhost:8080/dashboard`
-8. Configure team size, parallelism, specializations, and ephemeral workers from the dashboard `Config` tab.
+1. Copy the environment file:
+```bash
+cp .env.example .env
+```
+2. Start Postgres and Redis.
+3. Set the required secrets in `.env`:
+```bash
+OPENROUTER_API_KEY=...
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_BOT_USERNAME=...
+```
+4. Validate the setup:
+```bash
+cargo run -- doctor
+```
+5. Run the runtime:
+```bash
+cargo run -- run
+```
+6. Open the dashboard:
+- [http://localhost:8080/dashboard](http://localhost:8080/dashboard)
 
-If `FERRUM_DASHBOARD_AUTH_TOKEN` is set, send header `x-ferrum-dashboard-token`.
-
-## Minimal Environment
-`/.env.example` contains the current minimum runtime configuration:
-- bind/runtime basics
+## Runtime Requirements
+Minimum operational requirements:
+- Rust toolchain from `rust-toolchain.toml`
 - Postgres
 - Redis
-- OpenRouter
-- Telegram
-- safety controls
-- dashboard
+- OpenRouter API access
+- Telegram bot token for production channel use
 
-Team topology and specialization are now primarily runtime-managed from the dashboard, not from `.env`.
+## Current Identity and Skills Model
+Identity is code:
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/IDENTITY.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/IDENTITY.md)
 
-## Telegram Setup
-- Create the bot via `@BotFather`.
-- Set:
-  - `TELEGRAM_ENABLED=true`
-  - `TELEGRAM_BOT_TOKEN=...`
-  - `TELEGRAM_BOT_USERNAME=your_bot_username` (optional but useful for dashboard deep-linking)
-- Start ferrum and send a direct message to the bot from your Telegram account.
+Skills are code:
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills)
 
-## Local Dev Without Telegram
-- `cp examples/local.mock.env .env`
-- `cargo run -- chat --stdin`
-
-## Storage and Cache
-Recommended production topology:
-- `Postgres`: source of truth for conversations, turns, plans, tasks, artifacts, reminders, traces.
-- `Redis`: volatile read cache only. Ferrum does not use Redis as the durable queue or lock manager.
-
-What Redis is useful for in ferrum:
-- caching `recent_turns` to shorten repeated context loads
-- caching latest summary and memory search results
-- caching dashboard-heavy reads like recent runtime events, plan JSON, task JSON, and total cost
-- reducing repeated JSON serialization for live operator views
-
-## Core Commands
-- `cargo run -- init`
-- `cargo run -- run`
-- `cargo run -- dashboard`
-- `cargo run -- doctor`
-- `cargo run -- identity lint`
-- `cargo run -- skills lint`
-- `cargo run -- replay <event_id>`
-- `cargo run -- chat --stdin`
-- `cargo run -- team status`
-- `cargo run -- team simulate`
-- `cargo run -- export-trace <conversation_id>`
-
-## Identity
-`IDENTITY.md` uses YAML frontmatter + required sections.
-
-Required model routes:
-- `fast`
-- `reasoning`
-- `tool_use`
-- `vision`
-- `reviewer`
-- `planner`
-- `fallback[]`
-
-Required sections:
-- Mission
-- Persona
-- Tone
-- Hard Rules
-- Do Not Do
-- Escalation
-- Memory Preferences
-- Channel Notes
-- Planning Principles
-- Review Standards
-
-## Skills
-Each skill lives in `skills/<skill_name>/SKILL.md` and supports:
-- `builtin`
-- `command` (JSON stdin/stdout)
-- `http` (allowlisted domains)
-
-Shipped skills:
+Notable built-in and local skills:
 - `memory.write`
 - `memory.search`
 - `reminders.create`
 - `reminders.list`
-- `http.fetch` (disabled by default unless allowlisted)
-- `agent.status`
-- `agent.help`
+- `http.fetch`
 - `quality.verify`
-- `sample.command.echo`
+- `market-data`
+- `web-research`
+- `theory-reasoning`
+- `multi-source-synthesis`
 
-## Add a Skill (Worked Example)
-1. Create folder: `skills/quality.localcheck/`.
-2. Add `skills/quality.localcheck/SKILL.md`.
-3. If `kind: command`, place executable in same folder and set `entrypoint`.
-4. Add skill name to `IDENTITY.md -> permissions.allowed_skills`.
-5. Save file; ferrum hot-reloads skills automatically.
-6. Validate with `cargo run -- skills lint`.
+## Contributor Workflow
+### 1. Read the project rules
+Start here:
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/AGENTS.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/AGENTS.md)
 
-Minimal command-skill frontmatter example:
-```yaml
----
-name: quality.localcheck
-version: 1.0.0
-description: local checker
-kind: command
-entrypoint: check.sh
-input_schema: { type: object }
-output_schema: { type: object }
-permissions: []
-timeout_ms: 1000
-max_retries: 0
-cache_ttl_secs: 0
-idempotent: true
-side_effects: none
-tags: [quality]
-triggers: [check]
----
+Also read the architecture skills before structural work:
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills/_dev.in/SKILL.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills/_dev.in/SKILL.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills/_dev.usecase/SKILL.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills/_dev.usecase/SKILL.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills/_dev.out/SKILL.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/skills/_dev.out/SKILL.md)
+
+### 2. Respect the architecture
+- put transport logic in `in`
+- put business flows in `usecase`
+- put infrastructure and providers in `out`
+- add Spanish comments for important business steps inside use cases
+
+### 3. Validate before proposing changes
+Run:
+```bash
+cargo fmt --all --check
+cargo clippy --all-targets -- -D warnings
+cargo test
 ```
 
-## Team and Parallelism
-Team behavior now has two layers:
-- bootstrap defaults from environment on first start
-- live runtime settings from dashboard `Config`
-
-The dashboard can now manage:
-- team size
-- max parallel tasks
-- ephemeral worker allowance and cap
-- subagent mode
-- roleset
-- profile path
-- review interval
-- retry / review loop bounds
-- plan size / depth bounds
-- principal skills
-- skill specialization by role and by persistent subagent
-
-Ephemeral workers:
-- are created only when needed
-- are resource-aware
-- are bounded by host CPU/memory pressure
-- are destroyed on release
-
-Role profile overlays example: `examples/sample_team_profiles/`.
+### 4. Keep current-data answers grounded
+If the question depends on current data:
+- do not answer from pure model priors
+- fetch evidence first
+- synthesize after evidence exists
 
 ## Dashboard
-The dashboard is Telegram-first and mobile-first. It includes:
-- `Home` for runtime overview
-- `Flow` for the live execution canvas
-- `Events` for incoming messages and runtime events
-- `Config` for runtime team settings and specialization
+The dashboard provides:
+- operational overview
+- live flow graph
+- recent events
+- runtime configuration
+- bus and stream health
+- team and subagent visibility
 
-## Dashboard Endpoints
-- `/dashboard`
-- `/dashboard/conversations/:id`
-- `/dashboard/plans/:id`
-- `/dashboard/tasks/:id`
-- `/dashboard/team`
-- `/dashboard/config`
-- `/api/state`
-- `/api/events`
-- `/api/plans/:id`
-- `/api/tasks/:id`
-- `/api/team`
-- `/api/config`
-- `/api/flow`
-- `/events/stream`
-- `/healthz`
-- `/readyz`
-- `/metrics`
+If dashboard auth is configured, send either header:
+- `x-ai-microagents-dashboard-token`
+- `x-ferrum-dashboard-token` (legacy compatibility)
 
-Operator actions:
-- pause/resume runtime
-- reload identity
-- reload skills
-- replay event
-- toggle outbound kill switch
-- apply team runtime settings
+## Storage Strategy
+- Postgres: source of truth
+- Redis: hot cache + async side-effects + streams
 
-## Testing and Quality
-Run:
-- `cargo fmt --check`
-- `cargo clippy -- -D warnings`
-- `cargo test`
+The reply path stays local and durable.
+Redis is used to reduce latency and decouple non-critical work, not to replace the core turn queue.
 
-## Docker + systemd
-- Dockerfile: `docker/Dockerfile`
-- Service unit: `docker/ferrum.service`
+## Commands
+```bash
+cargo run -- init
+cargo run -- run
+cargo run -- dashboard
+cargo run -- doctor
+cargo run -- replay <event_id>
+cargo run -- chat --stdin
+cargo run -- team status
+cargo run -- team simulate
+cargo run -- identity lint
+cargo run -- skills lint
+cargo run -- export-trace <conversation_id>
+```
 
-## Docs
-- `docs/MASTERPLAN.md`
-- `docs/ARCHITECTURE.md`
-- `docs/THREAT_MODEL.md`
-- `docs/OPERATIONS.md`
+## Testing
+Standard validation:
+```bash
+cargo fmt --all --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
+
+Real OpenRouter benchmark with Telegram mock:
+```bash
+cargo test --test perf_real_openrouter -- --ignored --nocapture
+```
+
+## Docker and systemd
+- Docker image definition: [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docker/Dockerfile](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docker/Dockerfile)
+- systemd unit: [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docker/ai-microagents.service](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docker/ai-microagents.service)
+
+## Documentation
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/ARCHITECTURE.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/ARCHITECTURE.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/MASTERPLAN.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/MASTERPLAN.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/NEXT_LEVEL_PLAN.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/NEXT_LEVEL_PLAN.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/OPERATIONS.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/OPERATIONS.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/THREAT_MODEL.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/THREAT_MODEL.md)
+- [/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/IN_USECASE_OUT_MIGRATION.md](/Users/yasnielfajardo/Documents/PROJECTS/open-agent-team/docs/IN_USECASE_OUT_MIGRATION.md)
+
+## Compatibility Note
+The product brand is now **AI MicroAgents**.
+
+To avoid breaking existing deployments immediately, the runtime still accepts legacy environment variables and some legacy operational headers where that is the safer migration path.
+
+## License
+MIT

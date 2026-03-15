@@ -120,6 +120,7 @@ impl ModelRoutes {
             .flatten(),
         );
         ids.extend(self.fallback.clone());
+        ids.retain(|id| !id.trim().to_ascii_lowercase().starts_with("openrouter/"));
         ids.sort();
         ids.dedup();
         ids
@@ -141,6 +142,58 @@ pub struct IdentityMemory {
     pub save_facts: bool,
     pub save_summaries: bool,
     pub summarize_every_n_turns: u32,
+    #[serde(default = "default_brain_enabled")]
+    pub brain_enabled: bool,
+    #[serde(default = "default_precheck_each_turn")]
+    pub precheck_each_turn: bool,
+    #[serde(default = "default_auto_write_mode")]
+    pub auto_write_mode: String,
+    #[serde(default = "default_brain_conversation_limit")]
+    pub conversation_limit: usize,
+    #[serde(default = "default_brain_user_limit")]
+    pub user_limit: usize,
+}
+
+impl IdentityMemory {
+    pub fn brain_enabled(&self) -> bool {
+        self.brain_enabled
+    }
+
+    pub fn precheck_each_turn(&self) -> bool {
+        self.precheck_each_turn
+    }
+
+    pub fn auto_write_mode(&self) -> &str {
+        self.auto_write_mode.as_str()
+    }
+
+    pub fn conversation_limit(&self) -> usize {
+        self.conversation_limit.max(1)
+    }
+
+    pub fn user_limit(&self) -> usize {
+        self.user_limit.max(1)
+    }
+}
+
+fn default_brain_enabled() -> bool {
+    true
+}
+
+fn default_precheck_each_turn() -> bool {
+    true
+}
+
+fn default_auto_write_mode() -> String {
+    "aggressive".to_string()
+}
+
+fn default_brain_conversation_limit() -> usize {
+    4
+}
+
+fn default_brain_user_limit() -> usize {
+    4
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -276,8 +329,8 @@ mod tests {
     #[test]
     fn parses_identity_document() {
         let markdown = r#"---
-id: ferrum
-ndisplay_name: Ferrum
+id: ai-microagents
+ndisplay_name: AI MicroAgents
 description: test
 locale: en-US
 timezone: UTC
@@ -333,5 +386,71 @@ rs
 
         let result = IdentityDoc::parse(&markdown.replace("ndisplay_name", "display_name"));
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn applies_brain_defaults_when_fields_are_missing() {
+        let markdown = r#"---
+id: ai-microagents
+display_name: AI MicroAgents
+description: test
+locale: en-US
+timezone: UTC
+model_routes:
+  fast: model-a
+  reasoning: model-b
+  tool_use: model-c
+  vision: model-v
+  reviewer: model-r
+  planner: model-p
+  fallback: [model-d]
+budgets:
+  max_steps: 3
+  max_turn_cost_usd: 0.1
+  max_input_tokens: 1200
+  max_output_tokens: 400
+  max_tool_calls: 2
+  timeout_ms: 10000
+memory:
+  save_facts: true
+  save_summaries: true
+  summarize_every_n_turns: 6
+permissions:
+  allowed_skills: [agent.status]
+  denied_skills: [dangerous]
+channels:
+  telegram:
+    enabled: true
+    max_reply_chars: 3500
+    style_overrides: concise
+---
+## Mission
+m
+## Persona
+p
+## Tone
+t
+## Hard Rules
+h
+## Do Not Do
+d
+## Escalation
+e
+## Memory Preferences
+mp
+## Channel Notes
+cn
+## Planning Principles
+pp
+## Review Standards
+rs
+"#;
+
+        let result = IdentityDoc::parse(markdown).expect("identity parse");
+        assert!(result.frontmatter.memory.brain_enabled);
+        assert!(result.frontmatter.memory.precheck_each_turn);
+        assert_eq!(result.frontmatter.memory.auto_write_mode, "aggressive");
+        assert_eq!(result.frontmatter.memory.conversation_limit, 4);
+        assert_eq!(result.frontmatter.memory.user_limit, 4);
     }
 }

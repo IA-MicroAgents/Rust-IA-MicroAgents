@@ -194,7 +194,7 @@ impl AppConfig {
             cache: CacheConfig {
                 redis_url,
                 namespace: env::var("FERRUM_CACHE_NAMESPACE")
-                    .unwrap_or_else(|_| "ferrum".to_string()),
+                    .unwrap_or_else(|_| "ai-microagents".to_string()),
                 default_ttl_secs: int_var("FERRUM_CACHE_DEFAULT_TTL_SECS", 10),
                 dashboard_ttl_secs: int_var("FERRUM_CACHE_DASHBOARD_TTL_SECS", 3),
                 memory_ttl_secs: int_var("FERRUM_CACHE_MEMORY_TTL_SECS", 20),
@@ -203,14 +203,14 @@ impl AppConfig {
             bus: BusConfig {
                 enabled: bool_var("FERRUM_REDIS_BUS_ENABLED", true),
                 stream_prefix: env::var("FERRUM_REDIS_STREAM_PREFIX")
-                    .unwrap_or_else(|_| "ferrum".to_string()),
+                    .unwrap_or_else(|_| "ai-microagents".to_string()),
                 stream_maxlen: int_var("FERRUM_REDIS_STREAM_MAXLEN", 2_000) as usize,
                 outbox_publish_batch: int_var("FERRUM_OUTBOX_PUBLISH_BATCH", 64) as usize,
                 outbox_poll_ms: int_var("FERRUM_OUTBOX_POLL_MS", 500),
                 outbox_max_retries: int_var("FERRUM_OUTBOX_MAX_RETRIES", 8) as u32,
                 stream_reclaim_idle_ms: int_var("FERRUM_STREAM_RECLAIM_IDLE_MS", 60_000),
                 consumer_name: env::var("FERRUM_STREAM_CONSUMER_NAME")
-                    .unwrap_or_else(|_| "ferrum-runtime".to_string()),
+                    .unwrap_or_else(|_| "ai-microagents-runtime".to_string()),
                 memory_consumer_concurrency: int_var("FERRUM_MEMORY_CONSUMER_CONCURRENCY", 1)
                     as usize,
                 jobs_consumer_concurrency: int_var("FERRUM_JOBS_CONSUMER_CONCURRENCY", 1) as usize,

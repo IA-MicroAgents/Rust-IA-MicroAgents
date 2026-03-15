@@ -1,7 +1,7 @@
 ---
 name: agent.help
 version: 1.0.0
-description: Return help hints about ferrum capabilities
+description: Return help hints about AI MicroAgents capabilities
 kind: builtin
 entrypoint: agent.help
 input_schema:

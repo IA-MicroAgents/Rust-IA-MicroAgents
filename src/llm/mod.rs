@@ -3,6 +3,8 @@ pub mod models;
 pub mod openrouter;
 pub mod response_types;
 
+pub const OPENROUTER_FREE_MODEL: &str = "openrouter/free";
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

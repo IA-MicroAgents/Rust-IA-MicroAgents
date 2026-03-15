@@ -1,6 +1,6 @@
 ---
 name: dev-out-layer
-description: Usar cuando haya que crear o refactorizar adapters de salida e infraestructura siguiendo la capa out de Ferrum.
+description: Usar cuando haya que crear o refactorizar adapters de salida e infraestructura siguiendo la capa out de AI MicroAgents.
 ---
 
 # Capa `out`

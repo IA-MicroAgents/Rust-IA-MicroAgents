@@ -1,0 +1,1211 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - paragraph [ref=e7]: AI MicroAgents Runtime
+        - heading "Mission Control" [level=1] [ref=e8]
+        - paragraph [ref=e9]: Panel operativo para supervisar capacidad, eventos, flujo de ejecución y configuración sin una capa visual custom encima.
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - status:
+            - text: State
+            - strong [ref=e12]: running
+        - generic [ref=e13]:
+          - status:
+            - text: Identity
+            - strong [ref=e14]: ai-microagents.default
+        - generic [ref=e15]:
+          - status:
+            - text: Channel
+            - strong [ref=e16]: telegram
+        - generic [ref=e17]:
+          - status:
+            - text: Queue
+            - strong [ref=e18]: "0"
+        - generic [ref=e19]:
+          - status:
+            - text: Updated
+            - strong [ref=e20]: 2:09:43 a.m.
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic: Persistent Pool
+        - generic [ref=e26]:
+          - strong [ref=e27]: "4"
+          - generic [ref=e28]: Subagentes base del supervisor.
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic: Configured Team
+        - generic [ref=e32]:
+          - strong [ref=e33]: "4"
+          - generic [ref=e34]: Capacidad persistente configurada.
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic: Parallel Limit
+        - generic [ref=e38]:
+          - strong [ref=e39]: "4"
+          - generic [ref=e40]: Tope efectivo de ejecución paralela.
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic: Elastic Cap
+        - generic [ref=e44]:
+          - strong [ref=e45]: "4"
+          - generic [ref=e46]: Burst efímero calculado por recursos.
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - generic: Estimated Cost
+        - generic [ref=e50]:
+          - strong [ref=e51]: $0
+          - generic [ref=e52]: Costo acumulado visible del runtime.
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - generic: Storage Stack
+        - generic [ref=e56]:
+          - strong [ref=e57]: postgres
+          - generic [ref=e58]:
+            - text: Cache
+            - strong [ref=e59]: redis
+  - navigation "Dashboard views" [ref=e60]:
+    - button "Overview" [ref=e62] [cursor=pointer]:
+      - generic [ref=e63]: Overview
+    - button "Flow" [ref=e65] [cursor=pointer]:
+      - generic [ref=e66]: Flow
+    - button "Events" [ref=e68] [cursor=pointer]:
+      - generic [ref=e69]: Events
+    - button "Config" [ref=e71] [cursor=pointer]:
+      - generic [ref=e72]: Config
+  - generic [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic: Elastic Burst
+        - generic [ref=e78]:
+          - strong [ref=e79]: "0"
+          - generic [ref=e80]: Subagentes efímeros vivos.
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic: Queue
+        - generic [ref=e84]:
+          - strong [ref=e85]: "0"
+          - generic [ref=e86]: Eventos pendientes en la cola.
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - generic: Parallelism
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - text: Active tasks
+            - strong [ref=e92]: "0"
+          - generic [ref=e93]:
+            - text: Current batch
+            - strong [ref=e94]: "1"
+          - generic [ref=e95]:
+            - text: Skills
+            - strong [ref=e96]: "13"
+    - generic [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic: Host Resources
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - text: CPU cores
+            - strong [ref=e103]: "10"
+          - generic [ref=e104]:
+            - text: CPU usage
+            - strong [ref=e105]: 13.4%
+          - generic [ref=e106]:
+            - text: Memory pressure
+            - strong [ref=e107]: 88.8%
+          - generic [ref=e108]:
+            - text: Free memory
+            - strong [ref=e109]: 1,843 MB
+      - generic [ref=e110]:
+        - generic [ref=e111]:
+          - generic: Adaptive Burst
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - text: Configured ephemeral cap
+            - strong [ref=e115]: "8"
+          - generic [ref=e116]:
+            - text: Effective ephemeral cap
+            - strong [ref=e117]: "4"
+          - generic [ref=e118]:
+            - text: Planner max tasks
+            - strong [ref=e119]: "8"
+          - generic [ref=e120]:
+            - text: Plan max depth
+            - strong [ref=e121]: "3"
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic: Redis Bus
+        - generic [ref=e125]:
+          - generic [ref=e126]:
+            - text: Enabled
+            - strong [ref=e127]: "yes"
+          - generic [ref=e128]:
+            - text: Outbox pending
+            - strong [ref=e129]: "0"
+          - generic [ref=e130]:
+            - text: Outbox published
+            - strong [ref=e131]: "125"
+          - generic [ref=e132]:
+            - text: Outbox retries
+            - strong [ref=e133]: "0"
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic: Stream Lag
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - text: Events pending
+            - strong [ref=e139]: "0"
+          - generic [ref=e140]:
+            - text: Memory pending
+            - strong [ref=e141]: "0"
+          - generic [ref=e142]:
+            - text: Jobs pending
+            - strong [ref=e143]: "0"
+          - generic [ref=e144]:
+            - text: Prefix
+            - strong [ref=e145]: ai-microagents
+    - generic [ref=e146]:
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - generic [ref=e150]: Telegram
+          - heading "Canal activo" [level=2] [ref=e151]
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - status:
+              - text: Skills
+              - strong [ref=e154]: "13"
+          - generic [ref=e155]:
+            - status:
+              - text: Telegram
+              - strong [ref=e156]: enabled
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - paragraph [ref=e160]: Telegram está corriendo por long polling oficial. El panel consume snapshots y eventos reales del runtime.
+          - paragraph [ref=e161]: "@FerrumAgentBot"
+        - generic [ref=e162]:
+          - paragraph [ref=e163]: El supervisor recibe el chat desde Telegram, decide si responder directo o abrir plan, y crea burst workers efímeros solo si los recursos del host lo permiten.
+          - list [ref=e164]:
+            - listitem [ref=e165]:
+              - text: "Estado:"
+              - strong [ref=e166]: enabled
+            - listitem [ref=e167]:
+              - text: "Username:"
+              - strong [ref=e168]: "@FerrumAgentBot"
+            - listitem [ref=e169]:
+              - text: "Workers efímeros:"
+              - strong [ref=e170]: nacen y mueren según carga real + configuración
+          - link "Abrir bot en Telegram" [ref=e171] [cursor=pointer]:
+            - /url: https://t.me/FerrumAgentBot
+  - generic [ref=e173]:
+    - generic [ref=e175]:
+      - generic [ref=e176]:
+        - generic [ref=e177]: Execution Graph
+        - heading "Live orchestration flow" [level=2] [ref=e178]
+        - paragraph [ref=e179]: Telegram, supervisor, workers persistentes y burst efímero en tiempo real.
+      - generic [ref=e180]:
+        - generic [ref=e181]:
+          - status:
+            - text: Persistent
+            - strong [ref=e182]: "4"
+        - generic [ref=e183]:
+          - status:
+            - text: Ephemeral
+            - strong [ref=e184]: "0"
+        - generic [ref=e185]:
+          - status:
+            - text: Parallel
+            - strong [ref=e186]: "1"
+        - generic [ref=e187]:
+          - status:
+            - text: CPU
+            - strong [ref=e188]: 13%
+        - generic [ref=e189]:
+          - status:
+            - text: Mem
+            - strong [ref=e190]: 89%
+    - generic [ref=e192]:
+      - generic [ref=e193]:
+        - generic [ref=e384]:
+          - status: Ingest · Hola
+        - generic [ref=e385]:
+          - status: Context · idle
+        - generic [ref=e386]:
+          - status: Classify · idle
+        - generic [ref=e387]:
+          - status: Plan · idle
+        - generic [ref=e388]:
+          - status: Execute · idle
+        - generic [ref=e389]:
+          - status: Integrate · idle
+        - generic [ref=e390]:
+          - status: Deliver · DirectReply
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - status: Telegram
+        - generic [ref=e206]:
+          - status: Supervisor
+        - generic [ref=e207]:
+          - status: Persistent worker
+        - generic [ref=e208]:
+          - status: Ephemeral worker
+        - generic [ref=e209]:
+          - status: Review
+        - generic [ref=e210]:
+          - status: Integration
+        - generic [ref=e211]:
+          - status: Task
+  - generic [ref=e213]:
+    - generic [ref=e214]:
+      - generic [ref=e216]:
+        - generic [ref=e217]: Messages
+        - generic [ref=e218]: Solo mensajes entrantes y salientes del canal.
+      - generic [ref=e395]:
+        - generic [ref=e396]:
+          - generic [ref=e398]:
+            - generic [ref=e399]:
+              - generic [ref=e400]:
+                - status: TG
+              - strong [ref=e401]: Telegram 926769084
+            - generic [ref=e402]: 12:29:04 a.m.
+          - generic [ref=e404]: Hola
+        - generic [ref=e405]:
+          - generic [ref=e407]:
+            - generic [ref=e408]:
+              - generic [ref=e409]:
+                - status: AI
+              - strong [ref=e410]: AI MicroAgents -> 926769084
+            - generic [ref=e411]: 12:29:06 a.m.
+          - generic [ref=e413]: Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resultados e integrar una respuesta final. Tengo memoria operativa para guardar y recuperar contexto util. Puedo crear y listar recordatorios. Puedo consultar HTTP cuando la politica lo permite. Tambien paso resultados por verificacion antes de cerrar tareas delicadas. Dime la tarea concreta y la tomo desde ahi.
+        - generic [ref=e414]:
+          - generic [ref=e416]:
+            - generic [ref=e417]:
+              - generic [ref=e418]:
+                - status: TG
+              - strong [ref=e419]: Telegram 926769084
+            - generic [ref=e420]: 12:29:47 a.m.
+          - generic [ref=e422]: Haceme una comparación entre BYD y TESLA
+        - generic [ref=e423]:
+          - generic [ref=e425]:
+            - generic [ref=e426]:
+              - generic [ref=e427]:
+                - status: AI
+              - strong [ref=e428]: AI MicroAgents -> 926769084
+            - generic [ref=e429]: 12:29:52 a.m.
+          - generic [ref=e431]: "{ \"requests\": [ { \"model\": \"google/gemini-2.5-flash\", \"messages\": [ { \"role\": \"user\", \"content\": \"Realiza una comparación detallada entre BYD y Tesla, cubriendo aspectos como tecnología, cuota de mercado, modelos populares, estrategias de negocio y perspectivas a futuro. Incluye también los puntos fuertes y débiles de cada compañía.\" } ] } ] }"
+        - generic [ref=e432]:
+          - generic [ref=e434]:
+            - generic [ref=e435]:
+              - generic [ref=e436]:
+                - status: TG
+              - strong [ref=e437]: Telegram 926769084
+            - generic [ref=e438]: 1:33:53 a.m.
+          - generic [ref=e440]: Hola
+        - generic [ref=e441]:
+          - generic [ref=e443]:
+            - generic [ref=e444]:
+              - generic [ref=e445]:
+                - status: AI
+              - strong [ref=e446]: AI MicroAgents -> 926769084
+            - generic [ref=e447]: 1:33:59 a.m.
+          - generic [ref=e449]: Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resultados e integrar una respuesta final. Tengo memoria operativa para guardar y recuperar contexto util. Puedo crear y listar recordatorios. Puedo consultar HTTP cuando la politica lo permite. Tambien paso resultados por verificacion antes de cerrar tareas delicadas. Dime la tarea concreta y la tomo desde ahi.
+        - generic [ref=e450]:
+          - generic [ref=e452]:
+            - generic [ref=e453]:
+              - generic [ref=e454]:
+                - status: TG
+              - strong [ref=e455]: Telegram 926769084
+            - generic [ref=e456]: 1:34:14 a.m.
+          - generic [ref=e458]: Dame una pregunta complicada que aga pensar a una IA
+        - generic [ref=e459]:
+          - generic [ref=e461]:
+            - generic [ref=e462]:
+              - generic [ref=e463]:
+                - status: AI
+              - strong [ref=e464]: AI MicroAgents -> 926769084
+            - generic [ref=e465]: 1:34:43 a.m.
+          - generic [ref=e467]: "- wp1: ¿Si una IA puede diseñar una pregunta que haga que otra IA cuestione sus propias limitaciones de razonamiento, ¿qué implicaciones tiene esto para la autonomía y la ética de los sistemas de inteligencia artificial? - integrate_accepted_artifacts: Respuesta final integrada que combina todos los artefactos aceptados de forma coherente y segura."
+        - generic [ref=e468]:
+          - generic [ref=e470]:
+            - generic [ref=e471]:
+              - generic [ref=e472]:
+                - status: TG
+              - strong [ref=e473]: Telegram 926769084
+            - generic [ref=e474]: 1:35:23 a.m.
+          - generic [ref=e476]: Hacerme una comparación entre Tesla y BYD
+        - generic [ref=e477]:
+          - generic [ref=e479]:
+            - generic [ref=e480]:
+              - generic [ref=e481]:
+                - status: AI
+              - strong [ref=e482]: AI MicroAgents -> 926769084
+            - generic [ref=e483]: 1:35:30 a.m.
+          - generic [ref=e485]: "**Comparación breve: Tesla vs. BYD** | Aspecto | Tesla | BYD | |---|---|---| | **Origen** | EE. UU. (fundada 2003) | China (fundada 1995, automoción desde 2003) | | **Enfoque principal** | Vehículos de alta gama y tecnología de software | Vehículos de gama media‑alta y buses/taxis eléctricos | | **Modelos destacados** | Model S, Model 3, Model X, Model Y, Cybertruck | Qin Pro, Han, Tang, Dol"
+        - generic [ref=e486]:
+          - generic [ref=e488]:
+            - generic [ref=e489]:
+              - generic [ref=e490]:
+                - status: TG
+              - strong [ref=e491]: Telegram 926769084
+            - generic [ref=e492]: 1:35:47 a.m.
+          - generic [ref=e494]: Compara sus autos más tops
+        - generic [ref=e495]:
+          - generic [ref=e497]:
+            - generic [ref=e498]:
+              - generic [ref=e499]:
+                - status: AI
+              - strong [ref=e500]: AI MicroAgents -> 926769084
+            - generic [ref=e501]: 1:36:02 a.m.
+          - generic [ref=e503]: I hit an internal parsing issue. Can you rephrase in one sentence?
+    - generic [ref=e220]:
+      - generic [ref=e222]:
+        - generic [ref=e223]: Runtime Events
+        - generic [ref=e224]: Plan, workers, retries, review, integración y delivery.
+      - generic [ref=e504]:
+        - generic [ref=e505]:
+          - generic [ref=e507]:
+            - generic [ref=e508]:
+              - strong [ref=e509]: telegram_poll_failed
+              - generic [ref=e510]: runtime
+            - generic [ref=e511]:
+              - generic [ref=e512]:
+                - status: f0b34929
+              - generic [ref=e513]: 2:10:01 a.m.
+          - generic [ref=e515]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e516]:
+          - generic [ref=e518]:
+            - generic [ref=e519]:
+              - strong [ref=e520]: telegram_poll_failed
+              - generic [ref=e521]: runtime
+            - generic [ref=e522]:
+              - generic [ref=e523]:
+                - status: 1b425f18
+              - generic [ref=e524]: 2:09:42 a.m.
+          - generic [ref=e526]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e527]:
+          - generic [ref=e529]:
+            - generic [ref=e530]:
+              - strong [ref=e531]: telegram_poll_failed
+              - generic [ref=e532]: runtime
+            - generic [ref=e533]:
+              - generic [ref=e534]:
+                - status: 574e44cd
+              - generic [ref=e535]: 12:28:13 a.m.
+          - generic [ref=e537]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e538]:
+          - generic [ref=e540]:
+            - generic [ref=e541]:
+              - strong [ref=e542]: telegram_updates_received
+              - generic [ref=e543]: runtime
+            - generic [ref=e544]:
+              - generic [ref=e545]:
+                - status: "3233e019"
+              - generic [ref=e546]: 12:29:02 a.m.
+          - generic [ref=e548]: "{ \"received\": 1 }"
+        - generic [ref=e549]:
+          - generic [ref=e551]:
+            - generic [ref=e552]:
+              - strong [ref=e553]: telegram_message_received
+              - generic [ref=e554]: "926769084"
+            - generic [ref=e555]:
+              - generic [ref=e556]:
+                - status: 6b796870
+              - generic [ref=e557]: 12:29:04 a.m.
+          - generic [ref=e559]: "{ \"channel\": \"telegram\", \"conversation_external_id\": \"telegram:926769084\", \"event_id\": \"telegram:update:670499437\", \"text\": \"Hola\", \"user_id\": \"926769084\" }"
+        - generic [ref=e560]:
+          - generic [ref=e562]:
+            - generic [ref=e563]:
+              - strong [ref=e564]: turn_stage_changed
+              - generic [ref=e565]: runtime
+            - generic [ref=e566]:
+              - generic [ref=e567]:
+                - status: 9d5aa1ab
+              - generic [ref=e568]: 12:29:05 a.m.
+          - generic [ref=e570]: "{ \"conversation_id\": 1, \"event_id\": \"telegram:update:670499437\", \"evidence_count\": 0, \"preview\": \"Hola\", \"queue_wait_ms\": 1955, \"reasoning_tier\": \"low\", \"stage\": \"ingest\", \"trace_id\": \"aa080739-82a8-4e41-b360-d6b7b4290b03\" }"
+        - generic [ref=e571]:
+          - generic [ref=e573]:
+            - generic [ref=e574]:
+              - strong [ref=e575]: supervisor_started
+              - generic [ref=e576]: runtime
+            - generic [ref=e577]:
+              - generic [ref=e578]:
+                - status: 8fcc8b84
+              - generic [ref=e579]: 12:29:05 a.m.
+          - generic [ref=e581]: "{ \"conversation_id\": 1, \"event_id\": \"telegram:update:670499437\", \"preview\": \"Hola\", \"route_hint\": \"DirectReply\", \"trace_id\": \"aa080739-82a8-4e41-b360-d6b7b4290b03\" }"
+        - generic [ref=e582]:
+          - generic [ref=e584]:
+            - generic [ref=e585]:
+              - strong [ref=e586]: supervisor_fast_path
+              - generic [ref=e587]: runtime
+            - generic [ref=e588]:
+              - generic [ref=e589]:
+                - status: 20e7551f
+              - generic [ref=e590]: 12:29:05 a.m.
+          - generic [ref=e592]: "{ \"conversation_id\": 1, \"preview\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resu...\", \"route\": \"DirectReply\", \"strategy\": \"greeting\", \"trace_id\": \"aa080739-82a8-4e41-b360-d6b7b4290b03\" }"
+        - generic [ref=e593]:
+          - generic [ref=e595]:
+            - generic [ref=e596]:
+              - strong [ref=e597]: turn_stage_changed
+              - generic [ref=e598]: runtime
+            - generic [ref=e599]:
+              - generic [ref=e600]:
+                - status: ae68b9f0
+              - generic [ref=e601]: 12:29:05 a.m.
+          - generic [ref=e603]: "{ \"chunks\": 1, \"conversation_id\": 1, \"preview\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resu...\", \"route\": \"DirectReply\", \"stage\": \"deliver\", \"trace_id\": \"aa080739-82a8-4e41-b360-d6b7b4290b03\" }"
+        - generic [ref=e604]:
+          - generic [ref=e606]:
+            - generic [ref=e607]:
+              - strong [ref=e608]: outbound_message_sent
+              - generic [ref=e609]: runtime
+            - generic [ref=e610]:
+              - generic [ref=e611]:
+                - status: fa8c72b8
+              - generic [ref=e612]: 12:29:06 a.m.
+          - generic [ref=e614]: "{ \"channel\": \"telegram\", \"content\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resultados e integrar una respuesta final. Tengo memoria operativa para guardar y recuperar contexto util. Puedo crear y listar recordatorios. Puedo consultar HTTP cuando la politica lo permite. Tambien paso resultados por verificacion antes de cerrar tareas delicadas. Dime la tarea concreta y la tomo desde ahi.\", \"conversation_id\": 1, \"provider_message_id\": \"265\", \"recipient\": \"926769084\" }"
+        - generic [ref=e615]:
+          - generic [ref=e617]:
+            - generic [ref=e618]:
+              - strong [ref=e619]: conversation_turn_created
+              - generic [ref=e620]: "926769084"
+            - generic [ref=e621]:
+              - generic [ref=e622]:
+                - status: fd67c48e
+              - generic [ref=e623]: 12:29:06 a.m.
+          - generic [ref=e625]: "{ \"channel\": \"telegram\", \"content\": \"Hola\", \"conversation_id\": 1, \"role\": \"user\", \"user_id\": \"926769084\" }"
+        - generic [ref=e626]:
+          - generic [ref=e628]:
+            - generic [ref=e629]:
+              - strong [ref=e630]: conversation_turn_created
+              - generic [ref=e631]: "926769084"
+            - generic [ref=e632]:
+              - generic [ref=e633]:
+                - status: 5fedc301
+              - generic [ref=e634]: 12:29:06 a.m.
+          - generic [ref=e636]: "{ \"channel\": \"telegram\", \"content\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resultados e integrar una respuesta final. Tengo memoria operativa para guardar y recuperar contexto util. Puedo crear y listar recordatorios. Puedo consultar HTTP cuando la politica lo permite. Tambien paso resultados por verificacion antes de cerrar tareas delicadas. Dime la tarea concreta y la tomo desde ahi.\", \"conversation_id\": 1, \"role\": \"assistant\", \"user_id\": \"926769084\" }"
+        - generic [ref=e637]:
+          - generic [ref=e639]:
+            - generic [ref=e640]:
+              - strong [ref=e641]: supervisor_completed
+              - generic [ref=e642]: runtime
+            - generic [ref=e643]:
+              - generic [ref=e644]:
+                - status: 2a3e18c3
+              - generic [ref=e645]: 12:29:06 a.m.
+          - generic [ref=e647]: "{ \"conversation_id\": 1, \"preview\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resu...\", \"route\": \"DirectReply\", \"trace_id\": \"aa080739-82a8-4e41-b360-d6b7b4290b03\" }"
+        - generic [ref=e648]:
+          - generic [ref=e650]:
+            - generic [ref=e651]:
+              - strong [ref=e652]: telegram_poll_failed
+              - generic [ref=e653]: runtime
+            - generic [ref=e654]:
+              - generic [ref=e655]:
+                - status: ddca88bf
+              - generic [ref=e656]: 12:29:21 a.m.
+          - generic [ref=e658]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e659]:
+          - generic [ref=e661]:
+            - generic [ref=e662]:
+              - strong [ref=e663]: telegram_poll_failed
+              - generic [ref=e664]: runtime
+            - generic [ref=e665]:
+              - generic [ref=e666]:
+                - status: 0e575dc3
+              - generic [ref=e667]: 12:29:40 a.m.
+          - generic [ref=e669]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e670]:
+          - generic [ref=e672]:
+            - generic [ref=e673]:
+              - strong [ref=e674]: telegram_updates_received
+              - generic [ref=e675]: runtime
+            - generic [ref=e676]:
+              - generic [ref=e677]:
+                - status: 4422f0fa
+              - generic [ref=e678]: 12:29:46 a.m.
+          - generic [ref=e680]: "{ \"received\": 1 }"
+        - generic [ref=e681]:
+          - generic [ref=e683]:
+            - generic [ref=e684]:
+              - strong [ref=e685]: telegram_message_received
+              - generic [ref=e686]: "926769084"
+            - generic [ref=e687]:
+              - generic [ref=e688]:
+                - status: 86d6b6d2
+              - generic [ref=e689]: 12:29:47 a.m.
+          - generic [ref=e691]: "{ \"channel\": \"telegram\", \"conversation_external_id\": \"telegram:926769084\", \"event_id\": \"telegram:update:670499438\", \"text\": \"Haceme una comparación entre BYD y TESLA\", \"user_id\": \"926769084\" }"
+        - generic [ref=e692]:
+          - generic [ref=e694]:
+            - generic [ref=e695]:
+              - strong [ref=e696]: turn_stage_changed
+              - generic [ref=e697]: runtime
+            - generic [ref=e698]:
+              - generic [ref=e699]:
+                - status: b91a0a66
+              - generic [ref=e700]: 12:29:48 a.m.
+          - generic [ref=e702]: "{ \"conversation_id\": 1, \"event_id\": \"telegram:update:670499438\", \"evidence_count\": 0, \"preview\": \"Haceme una comparación entre BYD y TESLA\", \"queue_wait_ms\": 632, \"reasoning_tier\": \"medium\", \"stage\": \"ingest\", \"trace_id\": \"fc9e5783-1c6e-4561-b1bf-56499ab1d3f0\" }"
+        - generic [ref=e703]:
+          - generic [ref=e705]:
+            - generic [ref=e706]:
+              - strong [ref=e707]: supervisor_started
+              - generic [ref=e708]: runtime
+            - generic [ref=e709]:
+              - generic [ref=e710]:
+                - status: 16785b3e
+              - generic [ref=e711]: 12:29:48 a.m.
+          - generic [ref=e713]: "{ \"conversation_id\": 1, \"event_id\": \"telegram:update:670499438\", \"preview\": \"Haceme una comparación entre BYD y TESLA\", \"route_hint\": \"DirectReply\", \"trace_id\": \"fc9e5783-1c6e-4561-b1bf-56499ab1d3f0\" }"
+        - generic [ref=e714]:
+          - generic [ref=e716]:
+            - generic [ref=e717]:
+              - strong [ref=e718]: turn_stage_changed
+              - generic [ref=e719]: runtime
+            - generic [ref=e720]:
+              - generic [ref=e721]:
+                - status: d7c85a63
+              - generic [ref=e722]: 12:29:48 a.m.
+          - generic [ref=e724]: "{ \"conversation_id\": 1, \"preview\": \"Haceme una comparación entre BYD y TESLA\", \"reason\": \"simple_comparison_fast_reply\", \"route_hint\": \"DirectReply\", \"stage\": \"classify\", \"trace_id\": \"fc9e5783-1c6e-4561-b1bf-56499ab1d3f0\" }"
+        - generic [ref=e725]:
+          - generic [ref=e727]:
+            - generic [ref=e728]:
+              - strong [ref=e729]: supervisor_model_selected
+              - generic [ref=e730]: runtime
+            - generic [ref=e731]:
+              - generic [ref=e732]:
+                - status: 0476a9cd
+              - generic [ref=e733]: 12:29:48 a.m.
+          - generic [ref=e735]: "{ \"conversation_id\": 1, \"phase\": \"fast_reply\", \"reason\": \"free_preferred: route=fast_text input=Text output=Text reasoning=Medium tools=false policy=BalancedFast escalation=Standard score=31245.46 estimated_turn_cost_usd=Some(-1420.0) prompt_cost_per_million=Some(-1000000.0) completion_cost_per_million=Some(-1000000.0)\", \"resolved_model\": \"openrouter/bodybuilder\", \"route_key\": \"fast_text\", \"trace_id\": \"fc9e5783-1c6e-4561-b1bf-56499ab1d3f0\" }"
+        - generic [ref=e736]:
+          - generic [ref=e738]:
+            - generic [ref=e739]:
+              - strong [ref=e740]: turn_stage_changed
+              - generic [ref=e741]: runtime
+            - generic [ref=e742]:
+              - generic [ref=e743]:
+                - status: "64032398"
+              - generic [ref=e744]: 12:29:52 a.m.
+          - generic [ref=e746]: "{ \"chunks\": 1, \"conversation_id\": 1, \"preview\": \"{\\n \\\"requests\\\": [\\n {\\n \\\"model\\\": \\\"google/gemini-2.5-flash\\\",\\n \\\"messages\\\": [\\n {\\n \\\"role\\\": \\\"user\\\"...\", \"route\": \"DirectReply\", \"stage\": \"deliver\", \"trace_id\": \"fc9e5783-1c6e-4561-b1bf-56499ab1d3f0\" }"
+        - generic [ref=e747]:
+          - generic [ref=e749]:
+            - generic [ref=e750]:
+              - strong [ref=e751]: outbound_message_sent
+              - generic [ref=e752]: runtime
+            - generic [ref=e753]:
+              - generic [ref=e754]:
+                - status: 3f0e0042
+              - generic [ref=e755]: 12:29:52 a.m.
+          - generic [ref=e757]: "{ \"channel\": \"telegram\", \"content\": \"{\\n \\\"requests\\\": [\\n {\\n \\\"model\\\": \\\"google/gemini-2.5-flash\\\",\\n \\\"messages\\\": [\\n {\\n \\\"role\\\": \\\"user\\\",\\n \\\"content\\\": \\\"Realiza una comparación detallada entre BYD y Tesla, cubriendo aspectos como tecnología, cuota de mercado, modelos populares, estrategias de negocio y perspectivas a futuro. Incluye también los puntos fuertes y débiles de cada compañía.\\\"\\n }\\n ]\\n }\\n ]\\n}\", \"conversation_id\": 1, \"provider_message_id\": \"267\", \"recipient\": \"926769084\" }"
+        - generic [ref=e758]:
+          - generic [ref=e760]:
+            - generic [ref=e761]:
+              - strong [ref=e762]: conversation_turn_created
+              - generic [ref=e763]: "926769084"
+            - generic [ref=e764]:
+              - generic [ref=e765]:
+                - status: f33a47f9
+              - generic [ref=e766]: 12:29:52 a.m.
+          - generic [ref=e768]: "{ \"channel\": \"telegram\", \"content\": \"Haceme una comparación entre BYD y TESLA\", \"conversation_id\": 1, \"role\": \"user\", \"user_id\": \"926769084\" }"
+        - generic [ref=e769]:
+          - generic [ref=e771]:
+            - generic [ref=e772]:
+              - strong [ref=e773]: conversation_turn_created
+              - generic [ref=e774]: "926769084"
+            - generic [ref=e775]:
+              - generic [ref=e776]:
+                - status: 6ac5be09
+              - generic [ref=e777]: 12:29:52 a.m.
+          - generic [ref=e779]: "{ \"channel\": \"telegram\", \"content\": \"{\\n \\\"requests\\\": [\\n {\\n \\\"model\\\": \\\"google/gemini-2.5-flash\\\",\\n \\\"messages\\\": [\\n {\\n \\\"role\\\": \\\"user\\\",\\n \\\"content\\\": \\\"Realiza una comparación detallada entre BYD y Tesla, cubriendo aspectos como tecnología, cuota de mercado, modelos populares, estrategias de negocio y perspectivas a futuro. Incluye también los puntos fuertes y débiles de cada compañía.\\\"\\n }\\n ]\\n }\\n ]\\n}\", \"conversation_id\": 1, \"role\": \"assistant\", \"user_id\": \"926769084\" }"
+        - generic [ref=e780]:
+          - generic [ref=e782]:
+            - generic [ref=e783]:
+              - strong [ref=e784]: supervisor_completed
+              - generic [ref=e785]: runtime
+            - generic [ref=e786]:
+              - generic [ref=e787]:
+                - status: 473c1ef4
+              - generic [ref=e788]: 12:29:52 a.m.
+          - generic [ref=e790]: "{ \"conversation_id\": 1, \"preview\": \"{\\n \\\"requests\\\": [\\n {\\n \\\"model\\\": \\\"google/gemini-2.5-flash\\\",\\n \\\"messages\\\": [\\n {\\n \\\"role\\\": \\\"user\\\"...\", \"route\": \"DirectReply\", \"trace_id\": \"fc9e5783-1c6e-4561-b1bf-56499ab1d3f0\" }"
+        - generic [ref=e791]:
+          - generic [ref=e793]:
+            - generic [ref=e794]:
+              - strong [ref=e795]: telegram_poll_failed
+              - generic [ref=e796]: runtime
+            - generic [ref=e797]:
+              - generic [ref=e798]:
+                - status: 1e25404f
+              - generic [ref=e799]: 12:30:04 a.m.
+          - generic [ref=e801]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e802]:
+          - generic [ref=e804]:
+            - generic [ref=e805]:
+              - strong [ref=e806]: telegram_poll_failed
+              - generic [ref=e807]: runtime
+            - generic [ref=e808]:
+              - generic [ref=e809]:
+                - status: dc1a9608
+              - generic [ref=e810]: 12:30:22 a.m.
+          - generic [ref=e812]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e813]:
+          - generic [ref=e815]:
+            - generic [ref=e816]:
+              - strong [ref=e817]: telegram_poll_failed
+              - generic [ref=e818]: runtime
+            - generic [ref=e819]:
+              - generic [ref=e820]:
+                - status: 88d64409
+              - generic [ref=e821]: 12:30:42 a.m.
+          - generic [ref=e823]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e824]:
+          - generic [ref=e826]:
+            - generic [ref=e827]:
+              - strong [ref=e828]: telegram_poll_failed
+              - generic [ref=e829]: runtime
+            - generic [ref=e830]:
+              - generic [ref=e831]:
+                - status: 4dc42e6c
+              - generic [ref=e832]: 12:31:05 a.m.
+          - generic [ref=e834]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e835]:
+          - generic [ref=e837]:
+            - generic [ref=e838]:
+              - strong [ref=e839]: telegram_poll_failed
+              - generic [ref=e840]: runtime
+            - generic [ref=e841]:
+              - generic [ref=e842]:
+                - status: 8d0f8eae
+              - generic [ref=e843]: 12:31:32 a.m.
+          - generic [ref=e845]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e846]:
+          - generic [ref=e848]:
+            - generic [ref=e849]:
+              - strong [ref=e850]: telegram_poll_failed
+              - generic [ref=e851]: runtime
+            - generic [ref=e852]:
+              - generic [ref=e853]:
+                - status: 912a72c2
+              - generic [ref=e854]: 12:31:59 a.m.
+          - generic [ref=e856]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e857]:
+          - generic [ref=e859]:
+            - generic [ref=e860]:
+              - strong [ref=e861]: telegram_poll_failed
+              - generic [ref=e862]: runtime
+            - generic [ref=e863]:
+              - generic [ref=e864]:
+                - status: b5a9859e
+              - generic [ref=e865]: 12:32:26 a.m.
+          - generic [ref=e867]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e868]:
+          - generic [ref=e870]:
+            - generic [ref=e871]:
+              - strong [ref=e872]: telegram_poll_failed
+              - generic [ref=e873]: runtime
+            - generic [ref=e874]:
+              - generic [ref=e875]:
+                - status: 26378f32
+              - generic [ref=e876]: 12:32:53 a.m.
+          - generic [ref=e878]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e879]:
+          - generic [ref=e881]:
+            - generic [ref=e882]:
+              - strong [ref=e883]: telegram_poll_failed
+              - generic [ref=e884]: runtime
+            - generic [ref=e885]:
+              - generic [ref=e886]:
+                - status: 0ddc8772
+              - generic [ref=e887]: 12:33:20 a.m.
+          - generic [ref=e889]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e890]:
+          - generic [ref=e892]:
+            - generic [ref=e893]:
+              - strong [ref=e894]: telegram_poll_failed
+              - generic [ref=e895]: runtime
+            - generic [ref=e896]:
+              - generic [ref=e897]:
+                - status: b73dc427
+              - generic [ref=e898]: 12:33:47 a.m.
+          - generic [ref=e900]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e901]:
+          - generic [ref=e903]:
+            - generic [ref=e904]:
+              - strong [ref=e905]: telegram_poll_failed
+              - generic [ref=e906]: runtime
+            - generic [ref=e907]:
+              - generic [ref=e908]:
+                - status: e8582691
+              - generic [ref=e909]: 12:34:14 a.m.
+          - generic [ref=e911]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e912]:
+          - generic [ref=e914]:
+            - generic [ref=e915]:
+              - strong [ref=e916]: telegram_poll_failed
+              - generic [ref=e917]: runtime
+            - generic [ref=e918]:
+              - generic [ref=e919]:
+                - status: 500765df
+              - generic [ref=e920]: 12:34:41 a.m.
+          - generic [ref=e922]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e923]:
+          - generic [ref=e925]:
+            - generic [ref=e926]:
+              - strong [ref=e927]: telegram_poll_failed
+              - generic [ref=e928]: runtime
+            - generic [ref=e929]:
+              - generic [ref=e930]:
+                - status: 15a26605
+              - generic [ref=e931]: 12:35:08 a.m.
+          - generic [ref=e933]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e934]:
+          - generic [ref=e936]:
+            - generic [ref=e937]:
+              - strong [ref=e938]: telegram_poll_failed
+              - generic [ref=e939]: runtime
+            - generic [ref=e940]:
+              - generic [ref=e941]:
+                - status: a20f2bf6
+              - generic [ref=e942]: 12:35:35 a.m.
+          - generic [ref=e944]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e945]:
+          - generic [ref=e947]:
+            - generic [ref=e948]:
+              - strong [ref=e949]: telegram_poll_failed
+              - generic [ref=e950]: runtime
+            - generic [ref=e951]:
+              - generic [ref=e952]:
+                - status: 2b89b5d9
+              - generic [ref=e953]: 12:36:02 a.m.
+          - generic [ref=e955]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e956]:
+          - generic [ref=e958]:
+            - generic [ref=e959]:
+              - strong [ref=e960]: telegram_poll_failed
+              - generic [ref=e961]: runtime
+            - generic [ref=e962]:
+              - generic [ref=e963]:
+                - status: b6b4a36a
+              - generic [ref=e964]: 12:36:29 a.m.
+          - generic [ref=e966]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e967]:
+          - generic [ref=e969]:
+            - generic [ref=e970]:
+              - strong [ref=e971]: telegram_poll_failed
+              - generic [ref=e972]: runtime
+            - generic [ref=e973]:
+              - generic [ref=e974]:
+                - status: 9b6b0a9d
+              - generic [ref=e975]: 12:36:56 a.m.
+          - generic [ref=e977]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e978]:
+          - generic [ref=e980]:
+            - generic [ref=e981]:
+              - strong [ref=e982]: telegram_poll_failed
+              - generic [ref=e983]: runtime
+            - generic [ref=e984]:
+              - generic [ref=e985]:
+                - status: 74212fb5
+              - generic [ref=e986]: 12:37:23 a.m.
+          - generic [ref=e988]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e989]:
+          - generic [ref=e991]:
+            - generic [ref=e992]:
+              - strong [ref=e993]: telegram_poll_failed
+              - generic [ref=e994]: runtime
+            - generic [ref=e995]:
+              - generic [ref=e996]:
+                - status: bc5a30a7
+              - generic [ref=e997]: 12:37:50 a.m.
+          - generic [ref=e999]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1000]:
+          - generic [ref=e1002]:
+            - generic [ref=e1003]:
+              - strong [ref=e1004]: telegram_poll_failed
+              - generic [ref=e1005]: runtime
+            - generic [ref=e1006]:
+              - generic [ref=e1007]:
+                - status: 6bb22c91
+              - generic [ref=e1008]: 12:38:18 a.m.
+          - generic [ref=e1010]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1011]:
+          - generic [ref=e1013]:
+            - generic [ref=e1014]:
+              - strong [ref=e1015]: telegram_poll_failed
+              - generic [ref=e1016]: runtime
+            - generic [ref=e1017]:
+              - generic [ref=e1018]:
+                - status: d02bb1a7
+              - generic [ref=e1019]: 12:38:45 a.m.
+          - generic [ref=e1021]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1022]:
+          - generic [ref=e1024]:
+            - generic [ref=e1025]:
+              - strong [ref=e1026]: telegram_poll_failed
+              - generic [ref=e1027]: runtime
+            - generic [ref=e1028]:
+              - generic [ref=e1029]:
+                - status: 8a05cf2b
+              - generic [ref=e1030]: 12:49:41 a.m.
+          - generic [ref=e1032]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1033]:
+          - generic [ref=e1035]:
+            - generic [ref=e1036]:
+              - strong [ref=e1037]: telegram_poll_failed
+              - generic [ref=e1038]: runtime
+            - generic [ref=e1039]:
+              - generic [ref=e1040]:
+                - status: 2517aee1
+              - generic [ref=e1041]: 12:49:59 a.m.
+          - generic [ref=e1043]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1044]:
+          - generic [ref=e1046]:
+            - generic [ref=e1047]:
+              - strong [ref=e1048]: telegram_poll_failed
+              - generic [ref=e1049]: runtime
+            - generic [ref=e1050]:
+              - generic [ref=e1051]:
+                - status: 7c837a4d
+              - generic [ref=e1052]: 12:50:19 a.m.
+          - generic [ref=e1054]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1055]:
+          - generic [ref=e1057]:
+            - generic [ref=e1058]:
+              - strong [ref=e1059]: telegram_poll_failed
+              - generic [ref=e1060]: runtime
+            - generic [ref=e1061]:
+              - generic [ref=e1062]:
+                - status: 4bb63658
+              - generic [ref=e1063]: 12:51:31 a.m.
+          - generic [ref=e1065]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1066]:
+          - generic [ref=e1068]:
+            - generic [ref=e1069]:
+              - strong [ref=e1070]: telegram_poll_failed
+              - generic [ref=e1071]: runtime
+            - generic [ref=e1072]:
+              - generic [ref=e1073]:
+                - status: 1dabf0de
+              - generic [ref=e1074]: 1:33:30 a.m.
+          - generic [ref=e1076]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1077]:
+          - generic [ref=e1079]:
+            - generic [ref=e1080]:
+              - strong [ref=e1081]: telegram_poll_failed
+              - generic [ref=e1082]: runtime
+            - generic [ref=e1083]:
+              - generic [ref=e1084]:
+                - status: fa476f89
+              - generic [ref=e1085]: 1:33:49 a.m.
+          - generic [ref=e1087]: "{ \"error\": \"http error: telegram getUpdates failed: A network error: error sending request for url (https://api.telegram.org/token:redacted/GetUpdates)\" }"
+        - generic [ref=e1088]:
+          - generic [ref=e1090]:
+            - generic [ref=e1091]:
+              - strong [ref=e1092]: telegram_updates_received
+              - generic [ref=e1093]: runtime
+            - generic [ref=e1094]:
+              - generic [ref=e1095]:
+                - status: 378b9588
+              - generic [ref=e1096]: 1:33:53 a.m.
+          - generic [ref=e1098]: "{ \"received\": 1 }"
+        - generic [ref=e1099]:
+          - generic [ref=e1101]:
+            - generic [ref=e1102]:
+              - strong [ref=e1103]: telegram_message_received
+              - generic [ref=e1104]: "926769084"
+            - generic [ref=e1105]:
+              - generic [ref=e1106]:
+                - status: f22401cc
+              - generic [ref=e1107]: 1:33:53 a.m.
+          - generic [ref=e1109]: "{ \"channel\": \"telegram\", \"conversation_external_id\": \"telegram:926769084\", \"event_id\": \"telegram:update:670499439\", \"text\": \"Hola\", \"user_id\": \"926769084\" }"
+        - generic [ref=e1110]:
+          - generic [ref=e1112]:
+            - generic [ref=e1113]:
+              - strong [ref=e1114]: turn_stage_changed
+              - generic [ref=e1115]: runtime
+            - generic [ref=e1116]:
+              - generic [ref=e1117]:
+                - status: d359296b
+              - generic [ref=e1118]: 1:33:56 a.m.
+          - generic [ref=e1120]: "{ \"conversation_id\": 1, \"event_id\": \"telegram:update:670499439\", \"evidence_count\": 0, \"preview\": \"Hola\", \"queue_wait_ms\": 591, \"reasoning_tier\": \"low\", \"stage\": \"ingest\", \"trace_id\": \"9833acb3-1ab1-41e1-a4e6-3ac2e99e06ad\" }"
+        - generic [ref=e1121]:
+          - generic [ref=e1123]:
+            - generic [ref=e1124]:
+              - strong [ref=e1125]: supervisor_started
+              - generic [ref=e1126]: runtime
+            - generic [ref=e1127]:
+              - generic [ref=e1128]:
+                - status: baccf271
+              - generic [ref=e1129]: 1:33:58 a.m.
+          - generic [ref=e1131]: "{ \"conversation_id\": 1, \"event_id\": \"telegram:update:670499439\", \"preview\": \"Hola\", \"route_hint\": \"DirectReply\", \"trace_id\": \"9833acb3-1ab1-41e1-a4e6-3ac2e99e06ad\" }"
+        - generic [ref=e1132]:
+          - generic [ref=e1134]:
+            - generic [ref=e1135]:
+              - strong [ref=e1136]: supervisor_fast_path
+              - generic [ref=e1137]: runtime
+            - generic [ref=e1138]:
+              - generic [ref=e1139]:
+                - status: 2526a025
+              - generic [ref=e1140]: 1:33:58 a.m.
+          - generic [ref=e1142]: "{ \"conversation_id\": 1, \"preview\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resu...\", \"route\": \"DirectReply\", \"strategy\": \"greeting\", \"trace_id\": \"9833acb3-1ab1-41e1-a4e6-3ac2e99e06ad\" }"
+        - generic [ref=e1143]:
+          - generic [ref=e1145]:
+            - generic [ref=e1146]:
+              - strong [ref=e1147]: turn_stage_changed
+              - generic [ref=e1148]: runtime
+            - generic [ref=e1149]:
+              - generic [ref=e1150]:
+                - status: ec77af9b
+              - generic [ref=e1151]: 1:33:58 a.m.
+          - generic [ref=e1153]: "{ \"chunks\": 1, \"conversation_id\": 1, \"preview\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resu...\", \"route\": \"DirectReply\", \"stage\": \"deliver\", \"trace_id\": \"9833acb3-1ab1-41e1-a4e6-3ac2e99e06ad\" }"
+        - generic [ref=e1154]:
+          - generic [ref=e1156]:
+            - generic [ref=e1157]:
+              - strong [ref=e1158]: outbound_message_sent
+              - generic [ref=e1159]: runtime
+            - generic [ref=e1160]:
+              - generic [ref=e1161]:
+                - status: bbf4788f
+              - generic [ref=e1162]: 1:33:59 a.m.
+          - generic [ref=e1164]: "{ \"channel\": \"telegram\", \"content\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resultados e integrar una respuesta final. Tengo memoria operativa para guardar y recuperar contexto util. Puedo crear y listar recordatorios. Puedo consultar HTTP cuando la politica lo permite. Tambien paso resultados por verificacion antes de cerrar tareas delicadas. Dime la tarea concreta y la tomo desde ahi.\", \"conversation_id\": 1, \"provider_message_id\": \"269\", \"recipient\": \"926769084\" }"
+        - generic [ref=e1165]:
+          - generic [ref=e1167]:
+            - generic [ref=e1168]:
+              - strong [ref=e1169]: conversation_turn_created
+              - generic [ref=e1170]: "926769084"
+            - generic [ref=e1171]:
+              - generic [ref=e1172]:
+                - status: 576041d2
+              - generic [ref=e1173]: 1:33:59 a.m.
+          - generic [ref=e1175]: "{ \"channel\": \"telegram\", \"content\": \"Hola\", \"conversation_id\": 1, \"role\": \"user\", \"user_id\": \"926769084\" }"
+        - generic [ref=e1176]:
+          - generic [ref=e1178]:
+            - generic [ref=e1179]:
+              - strong [ref=e1180]: conversation_turn_created
+              - generic [ref=e1181]: "926769084"
+            - generic [ref=e1182]:
+              - generic [ref=e1183]:
+                - status: e3c48994
+              - generic [ref=e1184]: 1:33:59 a.m.
+          - generic [ref=e1186]: "{ \"channel\": \"telegram\", \"content\": \"Hola. Soy AI MicroAgents. Puedo responder preguntas y resumir contenido. Tambien puedo coordinar subtareas, revisar resultados e integrar una respuesta final. Tengo memoria operativa para guardar y recuperar contexto util. Puedo crear y listar recordatorios. Puedo consultar HTTP cuando la politica lo permite. Tambien paso resultados por verificacion antes de cerrar tareas delicadas. Dime la tarea concreta y la tomo desde ahi.\", \"conversation_id\": 1, \"role\": \"assistant\", \"user_id\": \"926769084\" }"
+  - generic [ref=e226]:
+    - generic [ref=e227]:
+      - generic [ref=e229]:
+        - generic [ref=e230]:
+          - generic [ref=e231]: Control Plane
+          - heading "Runtime configuration" [level=2] [ref=e232]
+          - paragraph [ref=e233]: Capacidad, política y burst del team sin skins ni overrides visuales propios.
+        - generic [ref=e234]:
+          - status: Sin cambios
+      - generic [ref=e236]:
+        - generic [ref=e237]:
+          - generic [ref=e238]:
+            - generic [ref=e240]: Team size
+            - spinbutton "Team size" [ref=e242]: "4"
+          - generic [ref=e243]:
+            - generic [ref=e245]: Max parallel tasks
+            - spinbutton "Max parallel tasks" [ref=e247]: "4"
+          - generic [ref=e249]:
+            - generic [ref=e251]: Subagent mode
+            - generic [ref=e253]:
+              - generic [ref=e254] [cursor=pointer]:
+                - combobox "Subagent mode" [ref=e255]: generalist
+                - textbox [ref=e256]: generalist
+                - img [ref=e259]
+              - generic:
+                - generic: generalist
+                - generic: specialist
+          - generic [ref=e261]:
+            - generic [ref=e263]: Profile path
+            - textbox "Profile path" [ref=e265]:
+              - /placeholder: subagents
+          - generic [ref=e266]:
+            - generic [ref=e268]: Review interval (ms)
+            - spinbutton "Review interval (ms)" [ref=e270]: "1000"
+          - generic [ref=e272]:
+            - generic [ref=e274]: Performance policy
+            - generic [ref=e276]:
+              - generic [ref=e277] [cursor=pointer]:
+                - combobox "Performance policy" [ref=e278]: balanced_fast
+                - textbox [ref=e279]: balanced_fast
+                - img [ref=e282]
+              - generic:
+                - generic: fast
+                - generic: balanced_fast
+                - generic: max_quality
+          - generic [ref=e284]:
+            - generic [ref=e286]: Planner aggressiveness
+            - spinbutton "Planner aggressiveness" [ref=e288]: "60"
+          - generic [ref=e290]:
+            - generic [ref=e292]: Max escalation tier
+            - generic [ref=e294]:
+              - generic [ref=e295] [cursor=pointer]:
+                - combobox "Max escalation tier" [ref=e296]: standard
+                - textbox [ref=e297]: standard
+                - img [ref=e300]
+              - generic:
+                - generic: conservative
+                - generic: standard
+                - generic: aggressive
+          - generic [ref=e302]:
+            - generic [ref=e304]: Typing delay (ms)
+            - spinbutton "Typing delay (ms)" [ref=e306]: "800"
+          - generic [ref=e307]:
+            - generic [ref=e309]: Review loops per task
+            - spinbutton "Review loops per task" [ref=e311]: "3"
+          - generic [ref=e312]:
+            - generic [ref=e314]: Task retries
+            - spinbutton "Task retries" [ref=e316]: "2"
+          - generic [ref=e317]:
+            - generic [ref=e319]: Plan max tasks
+            - spinbutton "Plan max tasks" [ref=e321]: "8"
+          - generic [ref=e322]:
+            - generic [ref=e324]: Plan max depth
+            - spinbutton "Plan max depth" [ref=e326]: "3"
+          - generic [ref=e327]:
+            - generic [ref=e329]: Max ephemeral subagents
+            - spinbutton "Max ephemeral subagents" [ref=e331]: "8"
+          - generic [ref=e332]:
+            - generic [ref=e334]: Progress threshold (ms)
+            - spinbutton "Progress threshold (ms)" [ref=e336]: "8000"
+        - generic [ref=e337]:
+          - generic [ref=e339] [cursor=pointer]:
+            - generic [ref=e340]:
+              - checkbox "Allow ephemeral subagents" [checked]
+              - img [ref=e1188]
+            - generic [ref=e341]: Allow ephemeral subagents
+          - generic [ref=e343] [cursor=pointer]:
+            - generic [ref=e344]:
+              - checkbox "Require final review" [checked]
+              - img [ref=e1191]
+            - generic [ref=e345]: Require final review
+          - generic [ref=e347] [cursor=pointer]:
+            - generic [ref=e348]:
+              - checkbox "Progress updates" [checked]
+              - img [ref=e1194]
+            - generic [ref=e349]: Progress updates
+        - generic [ref=e350]:
+          - generic [ref=e352]: Roleset
+          - textbox "Roleset" [ref=e354]:
+            - /placeholder: researcher,implementer,verifier,integrator
+            - text: researcher,implementer,verifier,integrator
+        - generic [ref=e355]:
+          - button "Guardar runtime settings" [ref=e357] [cursor=pointer]:
+            - generic [ref=e358]: Guardar runtime settings
+          - button "Recargar desde runtime" [ref=e360] [cursor=pointer]:
+            - generic [ref=e361]: Recargar desde runtime
+    - generic [ref=e362]:
+      - generic [ref=e364]:
+        - generic [ref=e365]: Shared Skills Catalog
+        - generic [ref=e366]: Todos los agentes y subagentes heredan este catálogo. Aquí solo inspeccionas qué capacidades tiene disponible AI MicroAgents.
+      - generic [ref=e1196]:
+        - generic [ref=e1197]:
+          - generic [ref=e1199]:
+            - strong [ref=e1200]: multi-source-synthesis
+            - generic [ref=e1201]:
+              - status: shared
+          - generic [ref=e1203]:
+            - generic [ref=e1204]: Guidance skill for merging evidence from multiple tracks into a single answer
+            - generic [ref=e1205]: synthesis · integration · evidence
+        - generic [ref=e1206]:
+          - generic [ref=e1208]:
+            - strong [ref=e1209]: reminders.list
+            - generic [ref=e1210]:
+              - status: shared
+          - generic [ref=e1212]:
+            - generic [ref=e1213]: List reminders for current user
+            - generic [ref=e1214]: reminders · scheduler · list
+        - generic [ref=e1215]:
+          - generic [ref=e1217]:
+            - strong [ref=e1218]: http.fetch
+            - generic [ref=e1219]:
+              - status: shared
+          - generic [ref=e1221]:
+            - generic [ref=e1222]: Fetch HTTP resources from allowlisted domains
+            - generic [ref=e1223]: http · fetch · api
+        - generic [ref=e1224]:
+          - generic [ref=e1226]:
+            - strong [ref=e1227]: memory.write
+            - generic [ref=e1228]:
+              - status: shared
+          - generic [ref=e1230]:
+            - generic [ref=e1231]: Persist a stable fact into long-term memory
+            - generic [ref=e1232]: memory · facts
+        - generic [ref=e1233]:
+          - generic [ref=e1235]:
+            - strong [ref=e1236]: agent.status
+            - generic [ref=e1237]:
+              - status: shared
+          - generic [ref=e1239]:
+            - generic [ref=e1240]: Return minimal runtime status
+            - generic [ref=e1241]: agent · status
+        - generic [ref=e1242]:
+          - generic [ref=e1244]:
+            - strong [ref=e1245]: agent.help
+            - generic [ref=e1246]:
+              - status: shared
+          - generic [ref=e1248]:
+            - generic [ref=e1249]: Return help hints about AI MicroAgents capabilities
+            - generic [ref=e1250]: agent · help
+        - generic [ref=e1251]:
+          - generic [ref=e1253]:
+            - strong [ref=e1254]: sample.command.echo
+            - generic [ref=e1255]:
+              - status: shared
+          - generic [ref=e1257]:
+            - generic [ref=e1258]: Example JSON stdin/stdout command skill
+            - generic [ref=e1259]: sample · command
+        - generic [ref=e1260]:
+          - generic [ref=e1262]:
+            - strong [ref=e1263]: theory-reasoning
+            - generic [ref=e1264]:
+              - status: shared
+          - generic [ref=e1266]:
+            - generic [ref=e1267]: Guidance skill for deep theoretical, philosophical, and computability reasoning
+            - generic [ref=e1268]: reasoning · theory · proof · philosophy
+        - generic [ref=e1269]:
+          - generic [ref=e1271]:
+            - strong [ref=e1272]: quality.verify
+            - generic [ref=e1273]:
+              - status: shared
+          - generic [ref=e1275]:
+            - generic [ref=e1276]: Deterministic quality check against acceptance criteria
+            - generic [ref=e1277]: quality · verify · review
+        - generic [ref=e1278]:
+          - generic [ref=e1280]:
+            - strong [ref=e1281]: reminders.create
+            - generic [ref=e1282]:
+              - status: shared
+          - generic [ref=e1284]:
+            - generic [ref=e1285]: Create a durable reminder job
+            - generic [ref=e1286]: reminders · scheduler · tasks
+        - generic [ref=e1287]:
+          - generic [ref=e1289]:
+            - strong [ref=e1290]: market-data
+            - generic [ref=e1291]:
+              - status: shared
+          - generic [ref=e1293]:
+            - generic [ref=e1294]: Guidance skill for market data acquisition before any current-market synthesis
+            - generic [ref=e1295]: market · data · evidence
+        - generic [ref=e1296]:
+          - generic [ref=e1298]:
+            - strong [ref=e1299]: web-research
+            - generic [ref=e1300]:
+              - status: shared
+          - generic [ref=e1302]:
+            - generic [ref=e1303]: Guidance skill for URL and web evidence inspection before synthesis
+            - generic [ref=e1304]: web · research · urls · evidence
+        - generic [ref=e1305]:
+          - generic [ref=e1307]:
+            - strong [ref=e1308]: memory.search
+            - generic [ref=e1309]:
+              - status: shared
+          - generic [ref=e1311]:
+            - generic [ref=e1312]: Search indexed memory documents and turns
+            - generic [ref=e1313]: memory · search · retrieval
+    - generic [ref=e368]:
+      - generic [ref=e370]:
+        - generic [ref=e371]: Danger Zone
+        - generic [ref=e372]: "Esto elimina memoria conversacional y estado runtime en Postgres y Redis. No toca `IDENTITY.md`, skills ni snapshots de configuración."
+      - generic [ref=e374]:
+        - generic [ref=e375]:
+          - generic [ref=e377]: Escribe RESET para confirmar
+          - textbox "Escribe RESET para confirmar" [ref=e379]:
+            - /placeholder: RESET
+        - button "Resetear data" [ref=e382] [cursor=pointer]:
+          - generic [ref=e383]: Resetear data

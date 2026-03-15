@@ -14,7 +14,7 @@ pub fn init() -> AppResult<Arc<PrometheusHandle>> {
 
     let builder = PrometheusBuilder::new()
         .set_buckets_for_metric(
-            Matcher::Prefix("ferrum_".to_string()),
+            Matcher::Prefix("ai_microagents_".to_string()),
             &[0.005, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0],
         )
         .map_err(|e| AppError::Internal(format!("metrics buckets init failed: {e}")))?;

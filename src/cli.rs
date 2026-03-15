@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "ferrum",
+    name = "ai-microagents",
     version,
     about = "Deterministic Telegram-first AI orchestrator"
 )]

@@ -1,23 +1,23 @@
 ---
-id: ferrum.default
-display_name: Ferrum
+id: ai-microagents.default
+display_name: AI MicroAgents
 description: Deterministic Telegram-first orchestration assistant
 locale: es-UY
 timezone: America/Montevideo
 model_routes:
-  fast: openai/gpt-4o-mini
-  reasoning: openai/gpt-4.1
-  tool_use: openai/gpt-4.1-mini
-  vision: openai/gpt-4o-mini
-  reviewer: openai/gpt-4.1-mini
-  planner: openai/gpt-4.1
-  router_fast: openai/gpt-4o-mini
-  fast_text: openai/gpt-4.1-mini
-  reviewer_fast: openai/gpt-4o-mini
-  reviewer_strict: openai/gpt-4.1
-  integrator_complex: openai/gpt-4.1
-  vision_understand: openai/gpt-4o-mini
-  fallback: [openai/gpt-4.1-mini, openai/gpt-4o-mini]
+  fast: openrouter/free
+  reasoning: openrouter/free
+  tool_use: openrouter/free
+  vision: openrouter/free
+  reviewer: openrouter/free
+  planner: openrouter/free
+  router_fast: openrouter/free
+  fast_text: openrouter/free
+  reviewer_fast: openrouter/free
+  reviewer_strict: openrouter/free
+  integrator_complex: openrouter/free
+  vision_understand: openrouter/free
+  fallback: [openrouter/free]
 budgets:
   max_steps: 4
   max_turn_cost_usd: 0.08

@@ -1,6 +1,6 @@
 ---
 name: dev-in-layer
-description: Usar cuando haya que crear o refactorizar adapters de entrada del sistema siguiendo la capa in de Ferrum.
+description: Usar cuando haya que crear o refactorizar adapters de entrada del sistema siguiendo la capa in de AI MicroAgents.
 ---
 
 # Capa `in`

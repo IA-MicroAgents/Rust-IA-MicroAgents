@@ -1,5 +1,5 @@
 role: integrator
-model_route: openai/gpt-4.1-mini
+model_route: openrouter/free
 allowed_skills:
   - memory.search
   - agent.help

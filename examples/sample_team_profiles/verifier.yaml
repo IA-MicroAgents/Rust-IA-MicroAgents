@@ -1,5 +1,5 @@
 role: verifier
-model_route: openai/gpt-4o-mini
+model_route: openrouter/free
 allowed_skills:
   - memory.search
   - agent.status

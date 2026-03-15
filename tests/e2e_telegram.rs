@@ -2,7 +2,7 @@ mod support;
 
 use std::sync::Arc;
 
-use ferrum::{
+use ai_microagents::{
     channel::telegram::TelegramClient,
     config::{
         AppConfig, CacheConfig, DashboardConfig, DatabaseConfig, OpenRouterConfig, PolicyConfig,
@@ -56,7 +56,7 @@ async fn incoming_telegram_update_produces_persisted_reply() {
     Mock::given(method("POST"))
         .and(path("/chat/completions"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "model": "model-fast",
+            "model": ai_microagents::llm::OPENROUTER_FREE_MODEL,
             "choices": [{"message": {"content": decision_json}}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 8, "cost": 0.001}
         })))
@@ -73,7 +73,7 @@ async fn incoming_telegram_update_produces_persisted_reply() {
                     "date": 1700000000,
                     "chat": {"id": 123456, "type": "private", "username": "alice"},
                     "from": {"id": 123456, "is_bot": false, "username": "alice", "first_name": "Alice", "language_code": "en"},
-                    "text": "hola ferrum"
+                    "text": "hola ai microagents"
                 }
             }]
         })))
@@ -174,19 +174,19 @@ async fn incoming_telegram_update_produces_persisted_reply() {
 
 fn write_identity(path: &std::path::Path) {
     let content = r#"---
-id: ferrum-test
-display_name: Ferrum Test
+id: ai-microagents-test
+display_name: AI MicroAgents Test
 description: Deterministic Telegram orchestrator
 locale: en-US
 timezone: UTC
 model_routes:
-  fast: model-fast
-  reasoning: model-reasoning
-  tool_use: model-tools
-  vision: model-vision
-  reviewer: model-reviewer
-  planner: model-planner
-  fallback: [model-fast]
+  fast: openrouter/free
+  reasoning: openrouter/free
+  tool_use: openrouter/free
+  vision: openrouter/free
+  reviewer: openrouter/free
+  planner: openrouter/free
+  fallback: [openrouter/free]
 budgets:
   max_steps: 4
   max_turn_cost_usd: 1.0
@@ -298,9 +298,9 @@ fn test_config(
         bind_addr: "127.0.0.1:0".to_string(),
         database,
         cache,
-        bus: ferrum::config::BusConfig {
+        bus: ai_microagents::config::BusConfig {
             enabled: true,
-            stream_prefix: "ferrum-test".to_string(),
+            stream_prefix: "ai-microagents-test".to_string(),
             stream_maxlen: 2000,
             outbox_publish_batch: 32,
             outbox_poll_ms: 200,
@@ -328,7 +328,7 @@ fn test_config(
             poll_timeout_secs: 1,
             poll_backoff_ms: 50,
             max_reply_chars: 3500,
-            bot_username: "ferrum_test_bot".to_string(),
+            bot_username: "ai_microagents_test_bot".to_string(),
             webhook_enabled: false,
             webhook_path: "/telegram/webhook".to_string(),
             webhook_secret: String::new(),
@@ -358,9 +358,9 @@ fn test_config(
             max_task_retries: 2,
             plan_max_tasks: 8,
             plan_max_depth: 3,
-            performance_policy: ferrum::team::config::PerformancePolicy::BalancedFast,
+            performance_policy: ai_microagents::team::config::PerformancePolicy::BalancedFast,
             planner_aggressiveness: 60,
-            max_escalation_tier: ferrum::team::config::EscalationTier::Standard,
+            max_escalation_tier: ai_microagents::team::config::EscalationTier::Standard,
             typing_delay_ms: 800,
             require_final_review: true,
             progress_updates_enabled: false,

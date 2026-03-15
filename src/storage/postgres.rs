@@ -5,12 +5,18 @@ use tokio::time::sleep;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use serde_json::Value;
-use tokio_postgres::{error::SqlState, types::ToSql, Client, Config as PgConfig, NoTls};
+use tokio_postgres::{
+    error::SqlState, types::ToSql, Client, Config as PgConfig, NoTls, Transaction,
+};
 use uuid::Uuid;
 
 use crate::{
     config::DatabaseConfig,
     errors::{AppError, AppResult},
+    memory::{
+        build_brain_search_text, candidate_should_supersede, BrainMemory, BrainMemoryKind,
+        BrainMemoryProvenance, BrainMemoryStatus, BrainScopeKind, BrainWriteCandidate,
+    },
     scheduler::jobs::ReminderSendJob,
     storage::{
         schema,
@@ -36,7 +42,7 @@ impl PostgresStore {
         let schema_name = validate_schema_name(&config.schema)?;
         let mut bootstrap_cfg = PgConfig::from_str(&config.postgres_url)
             .map_err(|e| AppError::Storage(format!("failed to parse postgres url: {e}")))?;
-        bootstrap_cfg.application_name("ferrum");
+        bootstrap_cfg.application_name("ai-microagents");
         bootstrap_cfg.connect_timeout(Duration::from_millis(config.connect_timeout_ms));
 
         {
@@ -59,7 +65,7 @@ impl PostgresStore {
 
         let mut pooled_cfg = PgConfig::from_str(&config.postgres_url)
             .map_err(|e| AppError::Storage(format!("failed to parse postgres url: {e}")))?;
-        pooled_cfg.application_name("ferrum");
+        pooled_cfg.application_name("ai-microagents");
         pooled_cfg.connect_timeout(Duration::from_millis(config.connect_timeout_ms));
         pooled_cfg.options(format!("-c search_path={},public", schema_name));
 
@@ -319,6 +325,164 @@ impl PostgresStore {
             .await
             .map_err(|e| AppError::Storage(format!("write fact failed: {e}")))?;
         Ok(())
+    }
+
+    pub async fn save_or_merge_brain_candidates(
+        &self,
+        candidates: &[BrainWriteCandidate],
+    ) -> AppResult<()> {
+        if candidates.is_empty() {
+            return Ok(());
+        }
+
+        let mut client = self.client().await?;
+        let tx = client.transaction().await.map_err(|e| {
+            AppError::Storage(format!("brain memory transaction start failed: {e}"))
+        })?;
+
+        for candidate in candidates {
+            save_or_merge_brain_candidate(&tx, candidate).await?;
+        }
+
+        tx.commit().await.map_err(|e| {
+            AppError::Storage(format!("brain memory transaction commit failed: {e}"))
+        })?;
+        Ok(())
+    }
+
+    pub async fn search_active_brain(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        query: &str,
+        conversation_limit: usize,
+        user_limit: usize,
+    ) -> AppResult<Vec<BrainMemory>> {
+        if query.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let client = self.client().await?;
+        let mut results = Vec::new();
+
+        if let Some(conversation_id) = conversation_id.filter(|_| conversation_limit > 0) {
+            let rows = client
+                .query(
+                    "SELECT id, scope_kind, user_id, conversation_id, memory_kind, memory_key, subject,
+                            what_value, why_value, where_context, learned_value, provenance_json,
+                            confidence, status, superseded_by, source_turn_id, created_at, updated_at
+                     FROM brain_memories
+                     WHERE status = 'active'
+                       AND scope_kind = 'conversation'
+                       AND conversation_id = $2
+                       AND to_tsvector('simple', search_text) @@ plainto_tsquery('simple', $1)
+                     ORDER BY ts_rank_cd(to_tsvector('simple', search_text), plainto_tsquery('simple', $1)) DESC,
+                              confidence DESC,
+                              updated_at DESC
+                     LIMIT $3",
+                    &[&query, &conversation_id, &(conversation_limit as i64)],
+                )
+                .await
+                .map_err(|e| AppError::Storage(format!("search conversation brain failed: {e}")))?;
+            results.extend(
+                rows.into_iter()
+                    .map(scan_brain_memory_row)
+                    .collect::<AppResult<Vec<_>>>()?,
+            );
+        }
+
+        if let Some(user_id) =
+            user_id.filter(|user_id| !user_id.trim().is_empty() && user_limit > 0)
+        {
+            let rows = client
+                .query(
+                    "SELECT id, scope_kind, user_id, conversation_id, memory_kind, memory_key, subject,
+                            what_value, why_value, where_context, learned_value, provenance_json,
+                            confidence, status, superseded_by, source_turn_id, created_at, updated_at
+                     FROM brain_memories
+                     WHERE status = 'active'
+                       AND scope_kind = 'user'
+                       AND user_id = $2
+                       AND to_tsvector('simple', search_text) @@ plainto_tsquery('simple', $1)
+                     ORDER BY ts_rank_cd(to_tsvector('simple', search_text), plainto_tsquery('simple', $1)) DESC,
+                              confidence DESC,
+                              updated_at DESC
+                     LIMIT $3",
+                    &[&query, &user_id, &(user_limit as i64)],
+                )
+                .await
+                .map_err(|e| AppError::Storage(format!("search user brain failed: {e}")))?;
+            results.extend(
+                rows.into_iter()
+                    .map(scan_brain_memory_row)
+                    .collect::<AppResult<Vec<_>>>()?,
+            );
+        }
+
+        Ok(results)
+    }
+
+    pub async fn recent_active_brain(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        conversation_limit: usize,
+        user_limit: usize,
+    ) -> AppResult<Vec<BrainMemory>> {
+        let client = self.client().await?;
+        let mut results = Vec::new();
+
+        if let Some(conversation_id) = conversation_id.filter(|_| conversation_limit > 0) {
+            let rows = client
+                .query(
+                    "SELECT id, scope_kind, user_id, conversation_id, memory_kind, memory_key, subject,
+                            what_value, why_value, where_context, learned_value, provenance_json,
+                            confidence, status, superseded_by, source_turn_id, created_at, updated_at
+                     FROM brain_memories
+                     WHERE status = 'active'
+                       AND scope_kind = 'conversation'
+                       AND conversation_id = $1
+                       AND memory_kind IN ('goal', 'decision', 'constraint', 'source_location')
+                     ORDER BY updated_at DESC, confidence DESC
+                     LIMIT $2",
+                    &[&conversation_id, &(conversation_limit.min(2) as i64)],
+                )
+                .await
+                .map_err(|e| AppError::Storage(format!("load recent conversation brain failed: {e}")))?;
+            results.extend(
+                rows.into_iter()
+                    .map(scan_brain_memory_row)
+                    .collect::<AppResult<Vec<_>>>()?,
+            );
+        }
+
+        if let Some(user_id) =
+            user_id.filter(|user_id| !user_id.trim().is_empty() && user_limit > 0)
+        {
+            let rows = client
+                .query(
+                    "SELECT id, scope_kind, user_id, conversation_id, memory_kind, memory_key, subject,
+                            what_value, why_value, where_context, learned_value, provenance_json,
+                            confidence, status, superseded_by, source_turn_id, created_at, updated_at
+                     FROM brain_memories
+                     WHERE status = 'active'
+                       AND scope_kind = 'user'
+                       AND user_id = $1
+                       AND memory_kind IN ('preference', 'constraint', 'profile_fact')
+                     ORDER BY updated_at DESC, confidence DESC
+                     LIMIT $2",
+                    &[&user_id, &(user_limit.min(2) as i64)],
+                )
+                .await
+                .map_err(|e| AppError::Storage(format!("load recent user brain failed: {e}")))?;
+            results.extend(
+                rows.into_iter()
+                    .map(scan_brain_memory_row)
+                    .collect::<AppResult<Vec<_>>>()?,
+            );
+        }
+
+        Ok(results)
     }
 
     pub async fn search_memory_docs(
@@ -1342,6 +1506,172 @@ impl PostgresStore {
             .map(|row| row.get::<_, i64>(0))
             .map_err(|e| AppError::Storage(format!("count query failed: {e}")))
     }
+}
+
+async fn save_or_merge_brain_candidate(
+    tx: &Transaction<'_>,
+    candidate: &BrainWriteCandidate,
+) -> AppResult<()> {
+    let existing = tx
+        .query_opt(
+            "SELECT id, scope_kind, user_id, conversation_id, memory_kind, memory_key, subject,
+                    what_value, why_value, where_context, learned_value, provenance_json,
+                    confidence, status, superseded_by, source_turn_id, created_at, updated_at
+             FROM brain_memories
+             WHERE status = 'active'
+               AND scope_kind = $1
+               AND memory_key = $2
+               AND (($3::TEXT IS NULL AND user_id IS NULL) OR user_id = $3)
+               AND (($4::BIGINT IS NULL AND conversation_id IS NULL) OR conversation_id = $4)
+             ORDER BY id DESC
+             LIMIT 1",
+            &[
+                &candidate.scope_kind.as_str(),
+                &candidate.memory_key,
+                &candidate.user_id,
+                &candidate.conversation_id,
+            ],
+        )
+        .await
+        .map_err(|e| AppError::Storage(format!("load existing brain memory failed: {e}")))?;
+
+    let Some(existing) = existing.map(scan_brain_memory_row).transpose()? else {
+        insert_brain_candidate(tx, candidate).await?;
+        return Ok(());
+    };
+
+    if existing.same_content(candidate) {
+        let merged_provenance = existing.provenance.merge(&candidate.provenance);
+        let merged_confidence = existing.confidence.max(candidate.confidence);
+        let search_text = candidate.search_text();
+        let merged_source_turn_id = candidate.source_turn_id.or(existing.source_turn_id);
+        let merged_provenance_json = serde_json::to_value(&merged_provenance).map_err(|e| {
+            AppError::Internal(format!("serialize merged brain provenance failed: {e}"))
+        })?;
+        tx.execute(
+            "UPDATE brain_memories
+             SET subject = $2,
+                 what_value = $3,
+                 why_value = $4,
+                 where_context = $5,
+                 learned_value = $6,
+                 provenance_json = $7,
+                 confidence = $8,
+                 source_turn_id = $9,
+                 search_text = $10,
+                 updated_at = $11
+             WHERE id = $1",
+            &[
+                &existing.id,
+                &candidate.subject,
+                &candidate.what_value,
+                &candidate.why_value,
+                &candidate.where_context,
+                &candidate.learned_value,
+                &merged_provenance_json,
+                &merged_confidence,
+                &merged_source_turn_id,
+                &search_text,
+                &Utc::now(),
+            ],
+        )
+        .await
+        .map_err(|e| AppError::Storage(format!("update merged brain memory failed: {e}")))?;
+        return Ok(());
+    }
+
+    if candidate_should_supersede(&existing, candidate) {
+        let new_id = insert_brain_candidate(tx, candidate).await?;
+        tx.execute(
+            "UPDATE brain_memories
+             SET status = 'superseded',
+                 superseded_by = $2,
+                 updated_at = $3
+             WHERE id = $1",
+            &[&existing.id, &new_id, &Utc::now()],
+        )
+        .await
+        .map_err(|e| AppError::Storage(format!("supersede brain memory failed: {e}")))?;
+    }
+
+    Ok(())
+}
+
+async fn insert_brain_candidate(
+    tx: &Transaction<'_>,
+    candidate: &BrainWriteCandidate,
+) -> AppResult<i64> {
+    let now = Utc::now();
+    let provenance_json = serde_json::to_value(&candidate.provenance)
+        .map_err(|e| AppError::Internal(format!("serialize brain provenance failed: {e}")))?;
+    let search_text = build_brain_search_text(
+        &candidate.subject,
+        &candidate.what_value,
+        candidate.why_value.as_deref(),
+        candidate.where_context.as_deref(),
+        candidate.learned_value.as_deref(),
+    );
+    let row = tx
+        .query_one(
+            "INSERT INTO brain_memories(
+                scope_kind, user_id, conversation_id, memory_kind, memory_key, subject,
+                what_value, why_value, where_context, learned_value, provenance_json,
+                confidence, status, superseded_by, source_turn_id, search_text, created_at, updated_at
+             )
+             VALUES (
+                $1, $2, $3, $4, $5, $6,
+                $7, $8, $9, $10, $11,
+                $12, 'active', NULL, $13, $14, $15, $15
+             )
+             RETURNING id",
+            &[
+                &candidate.scope_kind.as_str(),
+                &candidate.user_id,
+                &candidate.conversation_id,
+                &candidate.memory_kind.as_str(),
+                &candidate.memory_key,
+                &candidate.subject,
+                &candidate.what_value,
+                &candidate.why_value,
+                &candidate.where_context,
+                &candidate.learned_value,
+                &provenance_json,
+                &candidate.confidence,
+                &candidate.source_turn_id,
+                &search_text,
+                &now,
+            ],
+        )
+        .await
+        .map_err(|e| AppError::Storage(format!("insert brain memory failed: {e}")))?;
+    Ok(row.get(0))
+}
+
+fn scan_brain_memory_row(row: tokio_postgres::Row) -> AppResult<BrainMemory> {
+    let provenance_json: Value = row.get(11);
+    let provenance: BrainMemoryProvenance = serde_json::from_value(provenance_json)
+        .map_err(|e| AppError::Storage(format!("decode brain provenance failed: {e}")))?;
+
+    Ok(BrainMemory {
+        id: row.get(0),
+        scope_kind: BrainScopeKind::from_db(row.get::<_, String>(1).as_str()),
+        user_id: row.get(2),
+        conversation_id: row.get(3),
+        memory_kind: BrainMemoryKind::from_db(row.get::<_, String>(4).as_str()),
+        memory_key: row.get(5),
+        subject: row.get(6),
+        what_value: row.get(7),
+        why_value: row.get(8),
+        where_context: row.get(9),
+        learned_value: row.get(10),
+        provenance,
+        confidence: row.get(12),
+        status: BrainMemoryStatus::from_db(row.get::<_, String>(13).as_str()),
+        superseded_by: row.get(14),
+        source_turn_id: row.get(15),
+        created_at: row.get(16),
+        updated_at: row.get(17),
+    })
 }
 
 fn validate_schema_name(value: &str) -> AppResult<String> {

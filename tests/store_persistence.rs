@@ -1,13 +1,13 @@
 mod support;
 
-use chrono::Utc;
-use ferrum::{
+use ai_microagents::{
     config::{
         AppConfig, DashboardConfig, OpenRouterConfig, PolicyConfig, RuntimeConfig, TelegramConfig,
     },
     storage::{BusEventEnvelope, OutboundMessageInsert, Store},
     team::{config::SubagentMode, TeamConfig},
 };
+use chrono::Utc;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -18,9 +18,9 @@ async fn postgres_store_persists_model_usage_and_outbound_messages() {
         bind_addr: "127.0.0.1:0".to_string(),
         database: backend.database.clone(),
         cache: backend.cache.clone(),
-        bus: ferrum::config::BusConfig {
+        bus: ai_microagents::config::BusConfig {
             enabled: true,
-            stream_prefix: "ferrum-test".to_string(),
+            stream_prefix: "ai-microagents-test".to_string(),
             stream_maxlen: 2000,
             outbox_publish_batch: 32,
             outbox_poll_ms: 200,
@@ -78,9 +78,9 @@ async fn postgres_store_persists_model_usage_and_outbound_messages() {
             max_task_retries: 2,
             plan_max_tasks: 8,
             plan_max_depth: 3,
-            performance_policy: ferrum::team::config::PerformancePolicy::BalancedFast,
+            performance_policy: ai_microagents::team::config::PerformancePolicy::BalancedFast,
             planner_aggressiveness: 60,
-            max_escalation_tier: ferrum::team::config::EscalationTier::Standard,
+            max_escalation_tier: ai_microagents::team::config::EscalationTier::Standard,
             typing_delay_ms: 800,
             require_final_review: true,
             progress_updates_enabled: false,
@@ -110,7 +110,14 @@ async fn postgres_store_persists_model_usage_and_outbound_messages() {
         .await
         .expect("turn");
     store
-        .insert_model_usage("trace-1", "model-fast", 10, 8, 0.001, 42)
+        .insert_model_usage(
+            "trace-1",
+            ai_microagents::llm::OPENROUTER_FREE_MODEL,
+            10,
+            8,
+            0.001,
+            42,
+        )
         .await
         .expect("usage");
     store
@@ -119,7 +126,7 @@ async fn postgres_store_persists_model_usage_and_outbound_messages() {
             conversation_id: Some(conversation_id),
             channel: "telegram",
             recipient: "user-1",
-            content: "Hola desde Ferrum",
+            content: "Hola desde AI MicroAgents",
             provider_message_id: Some("msg-1"),
             status: "sent",
         })
@@ -151,9 +158,9 @@ async fn outbox_event_round_trip_persists_and_marks_published() {
         bind_addr: "127.0.0.1:0".to_string(),
         database: backend.database.clone(),
         cache: backend.cache.clone(),
-        bus: ferrum::config::BusConfig {
+        bus: ai_microagents::config::BusConfig {
             enabled: true,
-            stream_prefix: "ferrum-test".to_string(),
+            stream_prefix: "ai-microagents-test".to_string(),
             stream_maxlen: 2000,
             outbox_publish_batch: 32,
             outbox_poll_ms: 200,
@@ -211,9 +218,9 @@ async fn outbox_event_round_trip_persists_and_marks_published() {
             max_task_retries: 2,
             plan_max_tasks: 8,
             plan_max_depth: 3,
-            performance_policy: ferrum::team::config::PerformancePolicy::BalancedFast,
+            performance_policy: ai_microagents::team::config::PerformancePolicy::BalancedFast,
             planner_aggressiveness: 60,
-            max_escalation_tier: ferrum::team::config::EscalationTier::Standard,
+            max_escalation_tier: ai_microagents::team::config::EscalationTier::Standard,
             typing_delay_ms: 800,
             require_final_review: true,
             progress_updates_enabled: false,
@@ -241,7 +248,7 @@ async fn outbox_event_round_trip_persists_and_marks_published() {
         task_id: None,
         subagent_id: None,
         route_key: Some("fast_text".to_string()),
-        resolved_model: Some("openai/gpt-4o-mini".to_string()),
+        resolved_model: Some(ai_microagents::llm::OPENROUTER_FREE_MODEL.to_string()),
         evidence_count: None,
         reasoning_tier: None,
         fallback_kind: None,

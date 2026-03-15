@@ -1,10 +1,10 @@
-# Ferrum Master Plan
+# AI MicroAgents Master Plan
 
 ## Purpose
-Ferrum exists to run a serious AI operator with deterministic control, bounded costs, and operator-grade introspection. It is optimized for one strong engineer operating one binary. The active channel is Telegram Bot API only.
+AI MicroAgents exists to run a serious AI operator with deterministic control, bounded costs, and operator-grade introspection. It is optimized for one strong engineer operating one binary. The active channel is Telegram Bot API only.
 
 ## Product Contract
-Ferrum must:
+AI MicroAgents must:
 1. Ingest Telegram updates and persist raw payloads immediately.
 2. Process channel events asynchronously with bounded queues.
 3. Build bounded execution plans (DAG) for complex requests.

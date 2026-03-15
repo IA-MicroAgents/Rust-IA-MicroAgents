@@ -18,7 +18,7 @@ tags: [sample, command]
 triggers: [echo sample]
 ---
 ## What it does
-Demonstrates the external command protocol used by ferrum.
+Demonstrates the external command protocol used by AI MicroAgents.
 
 ## When to use
 Use for validating command-skill wiring in development.

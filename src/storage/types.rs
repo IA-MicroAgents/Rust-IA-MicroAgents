@@ -147,7 +147,7 @@ mod tests {
             task_id: Some("task-1".to_string()),
             subagent_id: Some("subagent-1".to_string()),
             route_key: Some("fast_text".to_string()),
-            resolved_model: Some("openai/gpt-4o-mini".to_string()),
+            resolved_model: Some(crate::llm::OPENROUTER_FREE_MODEL.to_string()),
             evidence_count: Some(2),
             reasoning_tier: Some("medium".to_string()),
             fallback_kind: None,

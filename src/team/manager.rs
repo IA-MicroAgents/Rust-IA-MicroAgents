@@ -6,6 +6,7 @@ use std::sync::{
 use crate::{
     errors::{AppError, AppResult},
     identity::{compiler::SystemIdentity, schema::IdentityPermissions},
+    llm::OPENROUTER_FREE_MODEL,
     storage::Store,
     team::{
         config::{
@@ -500,13 +501,8 @@ fn build_blueprint(
     })
 }
 
-fn resolve_blueprint_model(identity: &SystemIdentity, configured: &str) -> String {
-    identity
-        .frontmatter
-        .model_routes
-        .route_value(configured)
-        .map(ToString::to_string)
-        .unwrap_or_else(|| identity.frontmatter.model_routes.fast.clone())
+fn resolve_blueprint_model(_identity: &SystemIdentity, _configured: &str) -> String {
+    OPENROUTER_FREE_MODEL.to_string()
 }
 
 fn normalize_blueprint_route(configured: &str, role: &str, mode: SubagentMode) -> Option<String> {
@@ -578,7 +574,7 @@ fn fallback_blueprint(role: &str) -> SubagentBlueprint {
     SubagentBlueprint {
         role: role.to_string(),
         model_route: "fast_text".to_string(),
-        resolved_model: "openai/gpt-4o-mini".to_string(),
+        resolved_model: OPENROUTER_FREE_MODEL.to_string(),
         allowed_skills: vec!["*".to_string()],
     }
 }

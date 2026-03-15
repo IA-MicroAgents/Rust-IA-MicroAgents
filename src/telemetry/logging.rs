@@ -5,7 +5,9 @@ pub fn init() {
         .ok()
         .or_else(|| std::env::var("RUST_LOG").ok())
         .map(EnvFilter::new)
-        .unwrap_or_else(|| EnvFilter::new("ferrum=info,reqwest=warn,hyper=warn,tower_http=warn"));
+        .unwrap_or_else(|| {
+            EnvFilter::new("ai_microagents=info,reqwest=warn,hyper=warn,tower_http=warn")
+        });
     let json = std::env::var("FERRUM_LOG_JSON")
         .ok()
         .and_then(|v| v.parse::<bool>().ok())

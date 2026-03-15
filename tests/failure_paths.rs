@@ -1,7 +1,6 @@
 mod support;
 
-use async_trait::async_trait;
-use ferrum::{
+use ai_microagents::{
     identity::IdentityManager,
     llm::{
         openrouter::OpenRouterClient, ChatMessage, LlmProvider, LlmRequest, LlmResponse,
@@ -11,6 +10,7 @@ use ferrum::{
     skills::{SkillCall, SkillRegistry, SkillRunner},
     storage::Store,
 };
+use async_trait::async_trait;
 use serde_json::json;
 use tempfile::tempdir;
 use wiremock::{
@@ -29,7 +29,7 @@ async fn invalid_model_id_is_reported() {
         .mount(&server)
         .await;
 
-    let client = OpenRouterClient::new(ferrum::config::OpenRouterConfig {
+    let client = OpenRouterClient::new(ai_microagents::config::OpenRouterConfig {
         api_key: "x".to_string(),
         base_url: server.uri(),
         app_name: None,
@@ -40,7 +40,7 @@ async fn invalid_model_id_is_reported() {
     })
     .expect("client");
 
-    let routes = ferrum::identity::schema::ModelRoutes {
+    let routes = ai_microagents::identity::schema::ModelRoutes {
         fast: "missing".to_string(),
         reasoning: "missing".to_string(),
         tool_use: "missing".to_string(),
@@ -72,7 +72,7 @@ async fn openrouter_rate_limit_bubbles_up() {
         .mount(&server)
         .await;
 
-    let client = OpenRouterClient::new(ferrum::config::OpenRouterConfig {
+    let client = OpenRouterClient::new(ai_microagents::config::OpenRouterConfig {
         api_key: "x".to_string(),
         base_url: server.uri(),
         app_name: None,
@@ -85,7 +85,7 @@ async fn openrouter_rate_limit_bubbles_up() {
 
     let out = client
         .chat_completion(LlmRequest {
-            model: "model-fast".to_string(),
+            model: ai_microagents::llm::OPENROUTER_FREE_MODEL.to_string(),
             messages: vec![ChatMessage::text("user", "hi")],
             max_output_tokens: 64,
             temperature: 0.0,
@@ -106,8 +106,8 @@ async fn malformed_llm_json_falls_back_safely() {
     impl LlmProvider for BadProvider {
         async fn validate_models(
             &self,
-            _routes: &ferrum::identity::schema::ModelRoutes,
-        ) -> ProviderResult<Vec<ferrum::llm::ModelCapabilities>> {
+            _routes: &ai_microagents::identity::schema::ModelRoutes,
+        ) -> ProviderResult<Vec<ai_microagents::llm::ModelCapabilities>> {
             Ok(vec![])
         }
 
@@ -120,18 +120,23 @@ async fn malformed_llm_json_falls_back_safely() {
             })
         }
 
-        fn model_catalog(&self) -> Vec<ferrum::llm::ModelMetadata> {
+        fn model_catalog(&self) -> Vec<ai_microagents::llm::ModelMetadata> {
             vec![]
         }
     }
 
     let provider = BadProvider;
-    let decision = parse_or_repair_decision(&provider, "model-fast", "{broken", 1000)
+    let decision = parse_or_repair_decision(
+        &provider,
+        ai_microagents::llm::OPENROUTER_FREE_MODEL,
+        "{broken",
+        1000,
+    )
         .await
         .expect("decision");
     assert_eq!(
         decision.route,
-        ferrum::llm::response_types::DecisionRoute::AskClarification
+        ai_microagents::llm::response_types::DecisionRoute::AskClarification
     );
 }
 
@@ -147,13 +152,13 @@ async fn invalid_skill_schema_fails_closed() {
     let identity = IdentityManager::load(identity_path.clone()).expect("identity");
     let skills = SkillRegistry::load(skills_dir.clone()).expect("skills");
     let backend = support::TestBackend::new("failure_invalid_skill_schema");
-    let cfg = ferrum::config::AppConfig {
+    let cfg = ai_microagents::config::AppConfig {
         bind_addr: "127.0.0.1:0".to_string(),
         database: backend.database.clone(),
         cache: backend.cache.clone(),
-        bus: ferrum::config::BusConfig {
+        bus: ai_microagents::config::BusConfig {
             enabled: true,
-            stream_prefix: "ferrum-test".to_string(),
+            stream_prefix: "ai-microagents-test".to_string(),
             stream_maxlen: 2000,
             outbox_publish_batch: 32,
             outbox_poll_ms: 200,
@@ -165,7 +170,7 @@ async fn invalid_skill_schema_fails_closed() {
         },
         identity_path: identity_path.clone(),
         skills_dir: skills_dir.clone(),
-        openrouter: ferrum::config::OpenRouterConfig {
+        openrouter: ai_microagents::config::OpenRouterConfig {
             api_key: "x".to_string(),
             base_url: "http://127.0.0.1:1".to_string(),
             app_name: None,
@@ -174,7 +179,7 @@ async fn invalid_skill_schema_fails_closed() {
             validate_models_on_start: false,
             mock_mode: true,
         },
-        telegram: ferrum::config::TelegramConfig {
+        telegram: ai_microagents::config::TelegramConfig {
             enabled: true,
             bot_token: "test-token".to_string(),
             base_url: "https://api.telegram.org".to_string(),
@@ -187,19 +192,19 @@ async fn invalid_skill_schema_fails_closed() {
             webhook_secret: String::new(),
             typing_delay_ms: 800,
         },
-        policy: ferrum::config::PolicyConfig {
+        policy: ai_microagents::config::PolicyConfig {
             outbound_enabled: false,
             dry_run: true,
             http_skill_allowlist: vec![],
             outbound_kill_switch: true,
         },
-        runtime: ferrum::config::RuntimeConfig {
+        runtime: ai_microagents::config::RuntimeConfig {
             queue_capacity: 8,
             worker_concurrency: 1,
             reminder_poll_ms: 1000,
         },
-        team: ferrum::team::TeamConfig::from_env().expect("team config"),
-        dashboard: ferrum::config::DashboardConfig {
+        team: ai_microagents::team::TeamConfig::from_env().expect("team config"),
+        dashboard: ai_microagents::config::DashboardConfig {
             enable_dashboard: false,
             bind_addr: "127.0.0.1:0".to_string(),
             auth_token: String::new(),
@@ -240,13 +245,13 @@ async fn command_skill_timeout_is_enforced() {
     let identity = IdentityManager::load(identity_path.clone()).expect("identity");
     let skills = SkillRegistry::load(skills_dir.clone()).expect("skills");
     let backend = support::TestBackend::new("failure_skill_timeout");
-    let cfg = ferrum::config::AppConfig {
+    let cfg = ai_microagents::config::AppConfig {
         bind_addr: "127.0.0.1:0".to_string(),
         database: backend.database.clone(),
         cache: backend.cache.clone(),
-        bus: ferrum::config::BusConfig {
+        bus: ai_microagents::config::BusConfig {
             enabled: true,
-            stream_prefix: "ferrum-test".to_string(),
+            stream_prefix: "ai-microagents-test".to_string(),
             stream_maxlen: 2000,
             outbox_publish_batch: 32,
             outbox_poll_ms: 200,
@@ -258,7 +263,7 @@ async fn command_skill_timeout_is_enforced() {
         },
         identity_path: identity_path.clone(),
         skills_dir: skills_dir.clone(),
-        openrouter: ferrum::config::OpenRouterConfig {
+        openrouter: ai_microagents::config::OpenRouterConfig {
             api_key: "x".to_string(),
             base_url: "http://127.0.0.1:1".to_string(),
             app_name: None,
@@ -267,7 +272,7 @@ async fn command_skill_timeout_is_enforced() {
             validate_models_on_start: false,
             mock_mode: true,
         },
-        telegram: ferrum::config::TelegramConfig {
+        telegram: ai_microagents::config::TelegramConfig {
             enabled: true,
             bot_token: "test-token".to_string(),
             base_url: "https://api.telegram.org".to_string(),
@@ -280,19 +285,19 @@ async fn command_skill_timeout_is_enforced() {
             webhook_secret: String::new(),
             typing_delay_ms: 800,
         },
-        policy: ferrum::config::PolicyConfig {
+        policy: ai_microagents::config::PolicyConfig {
             outbound_enabled: false,
             dry_run: true,
             http_skill_allowlist: vec![],
             outbound_kill_switch: true,
         },
-        runtime: ferrum::config::RuntimeConfig {
+        runtime: ai_microagents::config::RuntimeConfig {
             queue_capacity: 8,
             worker_concurrency: 1,
             reminder_poll_ms: 1000,
         },
-        team: ferrum::team::TeamConfig::from_env().expect("team config"),
-        dashboard: ferrum::config::DashboardConfig {
+        team: ai_microagents::team::TeamConfig::from_env().expect("team config"),
+        dashboard: ai_microagents::config::DashboardConfig {
             enable_dashboard: false,
             bind_addr: "127.0.0.1:0".to_string(),
             auth_token: String::new(),
@@ -320,19 +325,19 @@ async fn command_skill_timeout_is_enforced() {
 
 fn write_identity(path: &std::path::Path) {
     let content = r#"---
-id: ferrum-test
-display_name: Ferrum Test
+id: ai-microagents-test
+display_name: AI MicroAgents Test
 description: Test identity
 locale: en-US
 timezone: UTC
 model_routes:
-  fast: model-fast
-  reasoning: model-reasoning
-  tool_use: model-tools
-  vision: model-vision
-  reviewer: model-reviewer
-  planner: model-planner
-  fallback: [model-fast]
+  fast: openrouter/free
+  reasoning: openrouter/free
+  tool_use: openrouter/free
+  vision: openrouter/free
+  reviewer: openrouter/free
+  planner: openrouter/free
+  fallback: [openrouter/free]
 budgets:
   max_steps: 4
   max_turn_cost_usd: 1.0

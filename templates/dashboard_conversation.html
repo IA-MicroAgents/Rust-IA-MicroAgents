@@ -1,60 +1,52 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Conversation {{ conversation_id }}</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23162044'/%3E%3Cpath d='M22 18h20v6H29v8h11v6H29v14h-7V18z' fill='%23f7fbff'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="/static/dashboard.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist/styles/webawesome.css" />
+  <script type="module">
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/badge/badge.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/button/button.js";
+    import "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/components/card/card.js";
+  </script>
 </head>
-<body class="theme-pro">
-  <div class="dashboard dashboard-conversation-shell">
-    <header class="hero-header conversation-hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Conversation detail</p>
-        <h1>Conversation {{ conversation_id }}</h1>
-        <p class="hero-description">Vista de inspección para comparar la entrada original con la respuesta final que produjo el orquestador.</p>
-        <div class="hero-summary">
-          <div class="hero-summary-card">
-            <span>Conversation</span>
-            <strong>#{{ conversation_id }}</strong>
-          </div>
-          <div class="hero-summary-card">
-            <span>Inbound chars</span>
-            <strong>{{ inbound_len }}</strong>
-          </div>
-          <div class="hero-summary-card">
-            <span>Final chars</span>
-            <strong>{{ final_answer_len }}</strong>
-          </div>
+<body>
+  <main class="wa-stack wa-gap-xl">
+    <wa-card with-header>
+      <div slot="header" class="wa-flank wa-gap-m">
+        <div class="wa-stack wa-gap-xs">
+          <span class="wa-caption-m">Conversation detail</span>
+          <h1 class="wa-heading-3xl">Conversation {{ conversation_id }}</h1>
+          <p class="wa-body-m wa-color-text-quiet">Vista de inspección para comparar la entrada original con la respuesta final del orquestador.</p>
+        </div>
+        <div class="wa-cluster wa-gap-s wa-flex-wrap">
+          <wa-badge>Conversation <strong>#{{ conversation_id }}</strong></wa-badge>
+          <wa-badge>Inbound chars <strong>{{ inbound_len }}</strong></wa-badge>
+          <wa-badge>Final chars <strong>{{ final_answer_len }}</strong></wa-badge>
+          <wa-button id="back-to-dashboard" type="button" variant="neutral">Volver al dashboard</wa-button>
         </div>
       </div>
-      <div class="conversation-actions">
-        <a class="back-link" href="/dashboard">Volver al dashboard</a>
-      </div>
-    </header>
+    </wa-card>
 
-    <main class="dashboard-content">
-      <section class="tab-lead">
-        <div>
-          <p class="eyebrow">Trace review</p>
-          <h2 class="tab-lead-title">Inbound vs final answer</h2>
-          <p class="tab-lead-copy">Ideal para revisar calidad de respuesta, truncado y coherencia general sin abrir los eventos crudos.</p>
-        </div>
-      </section>
+    <div class="wa-grid" style="--min-column-size: 24rem;">
+      <wa-card with-header>
+        <span slot="header">Entrada / inbound</span>
+        <pre style="margin:0; white-space:pre-wrap; overflow-wrap:anywhere;">{{ inbound }}</pre>
+      </wa-card>
 
-      <section class="overview-grid conversation-grid">
-        <article class="card col-6 log-card">
-          <h2>Entrada / inbound</h2>
-          <pre class="payload">{{ inbound }}</pre>
-        </article>
+      <wa-card with-header>
+        <span slot="header">Respuesta final del orquestador</span>
+        <pre style="margin:0; white-space:pre-wrap; overflow-wrap:anywhere;">{{ final_answer }}</pre>
+      </wa-card>
+    </div>
+  </main>
 
-        <article class="card col-6 spotlight-card">
-          <h2>Respuesta final del orquestador</h2>
-          <pre class="payload">{{ final_answer }}</pre>
-        </article>
-      </section>
-    </main>
-  </div>
+  <script>
+    document.getElementById('back-to-dashboard').addEventListener('click', () => {
+      window.location.href = '/dashboard';
+    });
+  </script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 use crate::{
     errors::AppResult,
+    memory::{BrainMemory, BrainWriteCandidate},
     storage::{types::ConversationContextSnapshot, ConversationTurn, Store},
 };
 
@@ -40,11 +41,43 @@ impl MemoryStore {
     pub async fn search(
         &self,
         conversation_id: Option<i64>,
+        user_id: Option<&str>,
         query: &str,
         limit: usize,
     ) -> AppResult<Vec<String>> {
         self.store
-            .search_memory_docs(conversation_id, query, limit)
+            .search_memory(conversation_id, user_id, query, limit)
+            .await
+    }
+
+    pub async fn search_brain(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        query: &str,
+        conversation_limit: usize,
+        user_limit: usize,
+    ) -> AppResult<Vec<BrainMemory>> {
+        self.store
+            .search_active_brain(
+                conversation_id,
+                user_id,
+                query,
+                conversation_limit,
+                user_limit,
+            )
+            .await
+    }
+
+    pub async fn recent_brain(
+        &self,
+        conversation_id: Option<i64>,
+        user_id: Option<&str>,
+        conversation_limit: usize,
+        user_limit: usize,
+    ) -> AppResult<Vec<BrainMemory>> {
+        self.store
+            .recent_active_brain(conversation_id, user_id, conversation_limit, user_limit)
             .await
     }
 
@@ -63,5 +96,12 @@ impl MemoryStore {
         self.store
             .write_fact(conversation_id, key, value, confidence, source_turn_id)
             .await
+    }
+
+    pub async fn save_or_merge_brain_candidates(
+        &self,
+        candidates: &[BrainWriteCandidate],
+    ) -> AppResult<()> {
+        self.store.save_or_merge_brain_candidates(candidates).await
     }
 }

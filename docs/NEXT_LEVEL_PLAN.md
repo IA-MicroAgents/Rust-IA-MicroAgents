@@ -1,7 +1,7 @@
-# Ferrum Next-Level Master Plan
+# AI MicroAgents Next-Level Master Plan
 
 ## Objetivo
-Llevar `ferrum` de un runtime sólido y operable a una plataforma de orquestación visual, multimodal y claramente superior en Telegram, sin perder sus principios de determinismo, control de costos y simplicidad operativa.
+Llevar `AI MicroAgents` de un runtime sólido y operable a una plataforma de orquestación visual, multimodal y claramente superior en Telegram, sin perder sus principios de determinismo, control de costos y simplicidad operativa.
 
 ## Qué copiaría de OpenClaw
 
@@ -47,13 +47,13 @@ Llevar `ferrum` de un runtime sólido y operable a una plataforma de orquestaci�
 ## Dirección del producto
 
 ### A. Telegram-first multimodal
-`ferrum` debe entender y responder a:
+`AI MicroAgents` debe entender y responder a:
 - texto
 - imagen
 - audio / voice note
 - documento liviano con OCR opcional
 
-`ferrum` debe generar:
+`AI MicroAgents` debe generar:
 - texto
 - imagen
 - opcionalmente audio de salida en una fase posterior

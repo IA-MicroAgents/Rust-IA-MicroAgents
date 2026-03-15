@@ -1,4 +1,4 @@
-# Ferrum Architecture Rules
+# AI MicroAgents Architecture Rules
 
 ## Objetivo
 Todo cambio nuevo en Rust debe seguir una arquitectura de tres capas:

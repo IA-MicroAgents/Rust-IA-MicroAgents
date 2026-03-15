@@ -13,9 +13,12 @@ impl MemoryRetriever {
     pub async fn retrieve(
         &self,
         conversation_id: Option<i64>,
+        user_id: Option<&str>,
         query: &str,
         limit: usize,
     ) -> AppResult<Vec<String>> {
-        self.memory.search(conversation_id, query, limit).await
+        self.memory
+            .search(conversation_id, user_id, query, limit)
+            .await
     }
 }

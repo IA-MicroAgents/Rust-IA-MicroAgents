@@ -1,13 +1,13 @@
 [Unit]
-Description=Ferrum WhatsApp Orchestrator
+Description=AI MicroAgents Orchestrator
 After=network.target
 
 [Service]
 Type=simple
-User=ferrum
-WorkingDirectory=/opt/ferrum
-EnvironmentFile=/opt/ferrum/.env
-ExecStart=/opt/ferrum/ferrum run
+User=aimicroagents
+WorkingDirectory=/opt/ai-microagents
+EnvironmentFile=/opt/ai-microagents/.env
+ExecStart=/opt/ai-microagents/ai-microagents run
 Restart=always
 RestartSec=3
 LimitNOFILE=65536

@@ -1,17 +1,17 @@
 ---
-id: ferrum.default
-display_name: Ferrum
+id: ai-microagents.default
+display_name: AI MicroAgents
 description: Deterministic WhatsApp orchestration assistant
 locale: en-US
 timezone: UTC
 model_routes:
-  fast: openai/gpt-4o-mini
-  reasoning: openai/gpt-4.1-mini
-  tool_use: openai/gpt-4o-mini
-  vision: openai/gpt-4o-mini
-  reviewer: openai/gpt-4o-mini
-  planner: openai/gpt-4.1-mini
-  fallback: [openai/gpt-4o-mini]
+  fast: openrouter/free
+  reasoning: openrouter/free
+  tool_use: openrouter/free
+  vision: openrouter/free
+  reviewer: openrouter/free
+  planner: openrouter/free
+  fallback: [openrouter/free]
 budgets:
   max_steps: 4
   max_turn_cost_usd: 0.08

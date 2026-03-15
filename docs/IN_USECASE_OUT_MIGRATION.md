@@ -1,7 +1,7 @@
 # Mapa de Migración `in / usecase / out`
 
 ## Objetivo
-Dejar Ferrum organizado en tres capas:
+Dejar AI MicroAgents organizado en tres capas:
 
 - `src/in`
 - `src/usecase`

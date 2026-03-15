@@ -130,7 +130,7 @@ async fn telegram_webhook(
                         .queue_depth
                         .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
                         + 1;
-                    metrics::gauge!("ferrum_queue_depth").set(depth as f64);
+                    metrics::gauge!("ai_microagents_queue_depth").set(depth as f64);
                     StatusCode::OK
                 }
                 Err(_) => StatusCode::SERVICE_UNAVAILABLE,

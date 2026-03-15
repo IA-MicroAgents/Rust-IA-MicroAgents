@@ -171,7 +171,7 @@ async fn run() -> AppResult<()> {
     tokio::spawn(async move {
         while let Some(event) = queue_rx.recv().await {
             let depth = queue_depth_worker.fetch_sub(1, Ordering::SeqCst) - 1;
-            metrics::gauge!("ferrum_queue_depth").set(depth.max(0) as f64);
+            metrics::gauge!("ai_microagents_queue_depth").set(depth.max(0) as f64);
             info!(
                 event_id = %event.event_id,
                 channel = %event.channel,
@@ -359,7 +359,7 @@ async fn chat(use_stdin: bool) -> AppResult<()> {
     std::env::set_var("FERRUM_OUTBOUND_KILL_SWITCH", "true");
     let runtime = build_runtime(false).await?;
 
-    println!("ferrum chat mode (ctrl+d to exit)");
+    println!("ai-microagents chat mode (ctrl+d to exit)");
     for line in io::stdin().lock().lines() {
         let line = line.map_err(AppError::from)?;
         if line.trim().is_empty() {
@@ -553,7 +553,7 @@ fn spawn_telegram_ingest_loop(
                                         }),
                                     );
                                     let depth = queue_depth.fetch_add(1, Ordering::SeqCst) + 1;
-                                    metrics::gauge!("ferrum_queue_depth").set(depth as f64);
+                                    metrics::gauge!("ai_microagents_queue_depth").set(depth as f64);
                                     info!(
                                         event_id = %event.event_id,
                                         queue_depth = depth,
